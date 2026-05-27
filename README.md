@@ -96,6 +96,34 @@ All subsequent stages work entirely from the local database.
 
 ---
 
+## Streamlit Web Application
+
+As an alternative to the notebook, the project includes a fully interactive **Streamlit app** (`app.py`) that exposes all analyses through a web UI.
+
+### Launch the app
+
+```powershell
+uv run streamlit run app.py
+```
+
+`uv run` automatically uses the project's `.venv` — no manual activation needed.  
+The app opens in your default browser at **http://localhost:8501**.
+
+### Pages
+
+| Page | Description |
+|------|-------------|
+| **Overview** | DB statistics, row counts, navigation guide |
+| **Data Collection** | Fetch historical & live data from CoinGecko API |
+| **Time Series** | Interactive line chart with moving average (6 sidebar filters) |
+| **Quantitative Analysis** | Bar / Box / Violin chart (6 sidebar filters) |
+| **Market Dashboard** | KPI cards · grouped bar · heatmap · treemap |
+| **Correlation & Volatility** | Correlation matrix · annualised volatility bar |
+
+> The app reads from `crypto_market.db`. Run **Data Collection** first if the database is empty.
+
+---
+
 ## Database Schema
 
 ```
