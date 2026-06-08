@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>main — CryptoMarket DB</title>
+  <style>
+    /* ── reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f1117;
+      --bg2:      #1a1d27;
+      --bg3:      #22263a;
+      --accent:   #7c6af7;
+      --accent2:  #a78bfa;
+      --green:    #34d399;
+      --yellow:   #fbbf24;
+      --red:      #f87171;
+      --blue:     #60a5fa;
+      --text:     #e2e8f0;
+      --text2:    #94a3b8;
+      --border:   #2d3250;
+      --code-bg:  #161b2e;
+      --radius:   10px;
+      --mono:     "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+      --sans:     "Inter", system-ui, -apple-system, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    a { color: var(--accent2); text-decoration: none; }
+    a:hover { text-decoration: underline; color: var(--accent); }
+
+    /* ── layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── sidebar ── */
+    .sidebar {
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      padding: 32px 20px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sidebar-brand .module-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--text2);
+      font-weight: 600;
+    }
+
+    .sidebar-brand .module-name {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent2);
+    }
+
+    .sidebar-brand .version-badge {
+      display: inline-block;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      margin-top: 4px;
+      width: fit-content;
+    }
+
+    .nav-section { display: flex; flex-direction: column; gap: 6px; }
+
+    .nav-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--text2);
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13.5px;
+      color: var(--text2);
+      transition: background .15s, color .15s;
+    }
+
+    .nav-link:hover, .nav-link.active {
+      background: var(--bg3);
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .nav-link .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .nav-link .fn-dot { background: var(--blue); }
+    .nav-link .exc-dot { background: var(--red); }
+    .nav-link .imp-dot { background: var(--green); }
+
+    /* ── main content ── */
+    .content {
+      padding: 48px 56px;
+      max-width: 900px;
+    }
+
+    /* ── page header ── */
+    .page-header {
+      margin-bottom: 48px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .breadcrumb {
+      font-size: 12px;
+      color: var(--text2);
+      margin-bottom: 12px;
+    }
+
+    .page-title {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .page-title .mono { font-family: var(--mono); color: var(--accent2); }
+
+    .page-subtitle {
+      color: var(--text2);
+      font-size: 16px;
+      max-width: 620px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .meta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: var(--text2);
+    }
+
+    .meta-chip .icon { font-size: 14px; }
+
+    /* ── sections ── */
+    section { margin-bottom: 52px; }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .section-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    .icon-blue  { background: rgba(96,165,250,.15); }
+    .icon-green { background: rgba(52,211,153,.15); }
+    .icon-red   { background: rgba(248,113,113,.15); }
+    .icon-violet{ background: rgba(124,106,247,.15); }
+    .icon-yellow{ background: rgba(251,191,36,.15); }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.01em;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    p { color: var(--text2); margin-bottom: 12px; }
+    p:last-child { margin-bottom: 0; }
+
+    /* ── docstring block ── */
+    .docstring {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      color: var(--text2);
+      font-size: 14.5px;
+      line-height: 1.75;
+      margin-bottom: 24px;
+    }
+
+    /* ── function signature card ── */
+    .fn-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+
+    .fn-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .fn-signature {
+      font-family: var(--mono);
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .fn-signature .fn-name { color: var(--blue); font-weight: 700; }
+    .fn-signature .fn-ret  { color: var(--text2); }
+
+    .fn-badge {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      font-weight: 700;
+      background: rgba(96,165,250,.15);
+      color: var(--blue);
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .fn-card-body { padding: 20px 24px; }
+
+    /* ── tables ── */
+    .table-wrap { overflow-x: auto; margin-bottom: 20px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    thead tr {
+      border-bottom: 2px solid var(--border);
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text2);
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    td code, th code {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--accent2);
+    }
+
+    .nullable-yes { color: var(--yellow); }
+    .nullable-no  { color: var(--green); }
+
+    /* ── code blocks ── */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+
+    .kw   { color: #c792ea; }
+    .fn   { color: #82aaff; }
+    .str  { color: #c3e88d; }
+    .cmt  { color: #546e7a; font-style: italic; }
+    .num  { color: #f78c6c; }
+    .cls  { color: #ffcb6b; }
+    .dec  { color: #89ddff; }
+
+    /* ── callout boxes ── */
+    .callout {
+      display: flex;
+      gap: 14px;
+      padding: 16px 18px;
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      font-size: 13.5px;
+    }
+
+    .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+    .callout-body { color: var(--text2); }
+    .callout-body strong { color: var(--text); }
+    .callout-body code {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: rgba(0,0,0,.3);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    .callout-warning { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.2); }
+    .callout-info    { background: rgba(96,165,250,.08);  border: 1px solid rgba(96,165,250,.2); }
+    .callout-success { background: rgba(52,211,153,.08); border: 1px solid rgba(52,211,153,.2); }
+    .callout-error   { background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.2); }
+
+    /* ── import list ── */
+    .import-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .import-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 14px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13.5px;
+    }
+
+    .import-name {
+      font-family: var(--mono);
+      color: var(--accent2);
+      min-width: 120px;
+    }
+
+    .import-from {
+      color: var(--text2);
+      font-size: 12px;
+      min-width: 130px;
+    }
+
+    .import-desc { color: var(--text2); font-size: 13px; }
+
+    .badge {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .badge-stdlib  { background: rgba(52,211,153,.15); color: var(--green); }
+    .badge-pypi    { background: rgba(124,106,247,.15); color: var(--accent2); }
+
+    /* ── exception cards ── */
+    .exc-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .exc-item {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 16px;
+      padding: 12px 16px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--red);
+      border-radius: 8px;
+      font-size: 13.5px;
+    }
+
+    .exc-name {
+      font-family: var(--mono);
+      color: #f87171;
+      font-size: 12.5px;
+      align-self: center;
+    }
+
+    .exc-desc { color: var(--text2); }
+
+    /* ── side effects list ── */
+    .effect-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .effect-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13.5px;
+      color: var(--text2);
+    }
+
+    .effect-icon { flex-shrink: 0; margin-top: 1px; }
+
+    /* ── params table ── */
+    .param-name { font-family: var(--mono); color: var(--blue); }
+    .param-val  { font-family: var(--mono); color: var(--green); }
+
+    /* ── footer ── */
+    footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      color: var(--text2);
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* ── scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ─────────── SIDEBAR ─────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="module-label">Python Module</span>
+      <span class="module-name">main</span>
+      <span class="version-badge">v0.1.0</span>
+    </div>
+
+    <nav>
+      <div class="nav-section">
+        <div class="nav-title">Moduł</div>
+        <a href="#overview"    class="nav-link"><span class="dot"></span>Przegląd</a>
+        <a href="#imports"     class="nav-link"><span class="dot imp-dot"></span>Importy</a>
+        <a href="#usage"       class="nav-link"><span class="dot"></span>Użycie</a>
+      </div>
+
+      <div class="nav-section" style="margin-top:16px;">
+        <div class="nav-title">Funkcje</div>
+        <a href="#fn-main"     class="nav-link"><span class="dot fn-dot"></span>main()</a>
+      </div>
+
+      <div class="nav-section" style="margin-top:16px;">
+        <div class="nav-title">Szczegóły</div>
+        <a href="#params"      class="nav-link"><span class="dot"></span>Parametry HTTP</a>
+        <a href="#side-effects"class="nav-link"><span class="dot"></span>Efekty uboczne</a>
+        <a href="#exceptions"  class="nav-link"><span class="dot exc-dot"></span>Wyjątki</a>
+        <a href="#example"     class="nav-link"><span class="dot"></span>Przykład</a>
+      </div>
+
+      <div class="nav-section" style="margin-top:16px;">
+        <div class="nav-title">Linki</div>
+        <a href="../README.md" class="nav-link"><span class="dot"></span>README</a>
+        <a href="../.docs/architecture.md" class="nav-link"><span class="dot"></span>Architektura</a>
+        <a href="../.docs/data-model.md"   class="nav-link"><span class="dot"></span>Model danych</a>
+        <a href="../.docs/diagrams.md"     class="nav-link"><span class="dot"></span>Diagramy</a>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- ─────────── CONTENT ─────────── -->
+  <main class="content">
+
+    <!-- PAGE HEADER -->
+    <header class="page-header" id="overview">
+      <div class="breadcrumb">project / main.py</div>
+      <h1 class="page-title">Moduł <span class="mono">main</span></h1>
+      <p class="page-subtitle">
+        Warstwa ingestion danych rynkowych kryptowalut z CoinGecko API.
+        Pobiera notowania Bitcoina, Ethereum i Solany i zapisuje odpowiedź
+        jako sformatowany plik JSON.
+      </p>
+      <div class="meta-row">
+        <span class="meta-chip"><span class="icon">📄</span> main.py</span>
+        <span class="meta-chip"><span class="icon">🐍</span> Python ≥ 3.14</span>
+        <span class="meta-chip"><span class="icon">📦</span> requests ≥ 2.33.1</span>
+        <span class="meta-chip"><span class="icon">🌐</span> CoinGecko API v3</span>
+      </div>
+    </header>
+
+    <!-- MODULE DOCSTRING -->
+    <section>
+      <div class="section-header">
+        <div class="section-icon icon-violet">📝</div>
+        <h2>Opis modułu</h2>
+      </div>
+      <div class="docstring">
+        <p>Moduł pobiera aktualne dane rynkowe kryptowalut dla Bitcoina, Ethereum
+        i Solany z publicznego REST API CoinGecko v3 i zapisuje odpowiedź jako
+        sformatowany plik JSON.</p>
+        <p>Stanowi warstwę kolekcji danych dla projektu akademickiego z przedmiotu
+        <strong>Bazy Danych</strong> — zebrane rekordy JSON są materiałem źródłowym
+        do projektowania i zasilania schematu relacyjnej bazy danych.</p>
+        <p>
+          <strong>Endpoint API:</strong><br>
+          <code>https://api.coingecko.com/api/v3/coins/markets</code>
+        </p>
+        <p>
+          <strong>Plik wyjściowy:</strong><br>
+          <code>coingecko_response.json</code> — tworzony / nadpisywany w bieżącym katalogu
+        </p>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">💡</span>
+        <div class="callout-body">
+          <strong>Typowe użycie:</strong> <code>python main.py</code><br>
+          Skrypt jest przeznaczony do uruchamiania bezpośrednio z CLI.
+          Może być też importowany i wywoływany jako <code>from main import main; main()</code>.
+        </div>
+      </div>
+    </section>
+
+    <!-- IMPORTS -->
+    <section id="imports">
+      <div class="section-header">
+        <div class="section-icon icon-green">📦</div>
+        <h2>Importy</h2>
+      </div>
+      <div class="import-list">
+        <div class="import-item">
+          <span class="import-name">json</span>
+          <span class="import-from">stdlib</span>
+          <span class="badge badge-stdlib">stdlib</span>
+          <span class="import-desc">Serializacja i formatowanie danych JSON (<code>json.dumps</code>)</span>
+        </div>
+        <div class="import-item">
+          <span class="import-name">pathlib.Path</span>
+          <span class="import-from">stdlib</span>
+          <span class="badge badge-stdlib">stdlib</span>
+          <span class="import-desc">Cross-platformowe operacje na ścieżkach plików (<code>Path.write_text</code>)</span>
+        </div>
+        <div class="import-item">
+          <span class="import-name">requests</span>
+          <span class="import-from">PyPI ≥ 2.33.1</span>
+          <span class="badge badge-pypi">PyPI</span>
+          <span class="import-desc">Wykonywanie żądań HTTP GET do CoinGecko API</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- USAGE -->
+    <section id="usage">
+      <div class="section-header">
+        <div class="section-icon icon-blue">▶</div>
+        <h2>Szybki start</h2>
+      </div>
+      <pre><span class="cmt"># Uruchomienie z CLI</span>
+python main.py
+
+<span class="cmt"># Uruchomienie przez uv</span>
+uv run python main.py
+
+<span class="cmt"># Import i wywołanie programowe</span>
+<span class="kw">from</span> main <span class="kw">import</span> main
+main()
+
+<span class="cmt"># Generowanie dokumentacji HTML (pydoc)</span>
+python -m pydoc -w main</pre>
+    </section>
+
+    <!-- ─── FUNCTION: main() ─── -->
+    <section id="fn-main">
+      <div class="section-header">
+        <div class="section-icon icon-blue">ƒ</div>
+        <h2>Funkcje</h2>
+      </div>
+
+      <div class="fn-card">
+        <div class="fn-card-header">
+          <span class="fn-signature">
+            <span class="kw">def</span>
+            <span class="fn-name"> main</span>()
+            <span class="fn-ret"> → None</span>
+          </span>
+          <span class="fn-badge">public</span>
+        </div>
+        <div class="fn-card-body">
+          <div class="docstring">
+            Pobiera dane rynkowe kryptowalut z CoinGecko i zapisuje je lokalnie.<br><br>
+            Wysyła pojedyncze żądanie GET do endpointu <code>/coins/markets</code> publicznego API
+            CoinGecko v3, żądając statystyk rynkowych wyrażonych w USD dla Bitcoina,
+            Ethereum i Solany. Surowa odpowiedź JSON jest formatowana (<code>indent=4</code>) i
+            zapisywana do pliku <code>coingecko_response.json</code> w bieżącym katalogu roboczym.
+            Nazwy pól pierwszego rekordu są wypisywane na stdout w celach inspekcyjnych.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PARAMS -->
+    <section id="params">
+      <div class="section-header">
+        <div class="section-icon icon-blue">⚙</div>
+        <h2>Parametry zapytania HTTP</h2>
+      </div>
+      <p>Poniższe parametry są przekazywane jako query string do endpointu
+         <code>GET /api/v3/coins/markets</code>:</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Parametr</th>
+              <th>Wartość</th>
+              <th>Opis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="param-name">vs_currency</span></td>
+              <td><span class="param-val">"usd"</span></td>
+              <td>Wszystkie wartości monetarne wyrażone w dolarach amerykańskich</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">ids</span></td>
+              <td><span class="param-val">"bitcoin,ethereum,solana"</span></td>
+              <td>Identyfikatory monet do pobrania (CoinGecko IDs)</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">order</span></td>
+              <td><span class="param-val">"market_cap_desc"</span></td>
+              <td>Sortowanie wyników malejąco po kapitalizacji rynkowej</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">per_page</span></td>
+              <td><span class="param-val">10</span></td>
+              <td>Maksymalna liczba rekordów na stronę paginacji</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">page</span></td>
+              <td><span class="param-val">1</span></td>
+              <td>Numer strony (pobieramy zawsze pierwszą)</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">sparkline</span></td>
+              <td><span class="param-val">"false"</span></td>
+              <td>Pomija dane sparkline — 7-dniowy mini-wykres cen</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">price_change_percentage</span></td>
+              <td><span class="param-val">"24h,7d"</span></td>
+              <td>Dodaje pola ze zmianami procentowymi za 24h i 7 dni</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SIDE EFFECTS -->
+    <section id="side-effects">
+      <div class="section-header">
+        <div class="section-icon icon-yellow">⚡</div>
+        <h2>Efekty uboczne</h2>
+      </div>
+      <div class="effect-list">
+        <div class="effect-item">
+          <span class="effect-icon">🌐</span>
+          <span>Wykonuje <strong>jedno wychodzące żądanie HTTP GET</strong> z timeoutem
+            <code>10</code> sekund do <code>api.coingecko.com</code></span>
+        </div>
+        <div class="effect-item">
+          <span class="effect-icon">💾</span>
+          <span>Tworzy lub <strong>nadpisuje</strong> plik
+            <code>coingecko_response.json</code> w bieżącym katalogu roboczym
+            (sformatowany JSON, <code>indent=4</code>, <code>ensure_ascii=False</code>)</span>
+        </div>
+        <div class="effect-item">
+          <span class="effect-icon">🖨</span>
+          <span>Wypisuje na <strong>stdout</strong>: kod statusu HTTP, ścieżkę pliku
+            wyjściowego, listę nazw pól JSON z pierwszego rekordu</span>
+        </div>
+      </div>
+
+      <div class="callout callout-warning" style="margin-top:16px;">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-body">
+          <strong>Uwaga:</strong> każde kolejne wywołanie <strong>nadpisuje</strong>
+          <code>coingecko_response.json</code>. Dane historyczne nie są zachowywane
+          — w planowanej wersji każdy snapshot będzie zapisywany do bazy danych
+          z sygnaturą czasową.
+        </div>
+      </div>
+    </section>
+
+    <!-- EXCEPTIONS -->
+    <section id="exceptions">
+      <div class="section-header">
+        <div class="section-icon icon-red">⚠</div>
+        <h2>Wyjątki</h2>
+      </div>
+      <div class="exc-list">
+        <div class="exc-item">
+          <span class="exc-name">requests.exceptions<br>.HTTPError</span>
+          <span class="exc-desc">Serwer zwrócił kod odpowiedzi <strong>4xx</strong> lub
+            <strong>5xx</strong>. Wyzwalany przez <code>response.raise_for_status()</code>
+            po każdym żądaniu.</span>
+        </div>
+        <div class="exc-item">
+          <span class="exc-name">requests.exceptions<br>.ConnectionError</span>
+          <span class="exc-desc">Brak połączenia sieciowego lub host
+            <code>api.coingecko.com</code> jest niedostępny (DNS failure, refused
+            connection itp.).</span>
+        </div>
+        <div class="exc-item">
+          <span class="exc-name">requests.exceptions<br>.Timeout</span>
+          <span class="exc-desc">Serwer nie odpowiedział w ciągu <strong>10 sekund</strong>
+            (<code>timeout=10</code> w <code>requests.get</code>).</span>
+        </div>
+        <div class="exc-item">
+          <span class="exc-name">OSError</span>
+          <span class="exc-desc">Błąd zapisu pliku — brak uprawnień do katalogu, brak
+            wolnego miejsca na dysku lub inny błąd systemu plików
+            podczas <code>Path.write_text()</code>.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXAMPLE -->
+    <section id="example">
+      <div class="section-header">
+        <div class="section-icon icon-green">💡</div>
+        <h2>Przykład działania</h2>
+      </div>
+
+      <h3>Kod źródłowy</h3>
+      <pre><span class="kw">import</span> json
+<span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cls">Path</span>
+<span class="kw">import</span> requests
+
+
+<span class="kw">def</span> <span class="fn">main</span>() -> <span class="dec">None</span>:
+    url = <span class="str">"https://api.coingecko.com/api/v3/coins/markets"</span>
+
+    params = {
+        <span class="str">"vs_currency"</span>: <span class="str">"usd"</span>,
+        <span class="str">"ids"</span>: <span class="str">"bitcoin,ethereum,solana"</span>,
+        <span class="str">"order"</span>: <span class="str">"market_cap_desc"</span>,
+        <span class="str">"per_page"</span>: <span class="num">10</span>,
+        <span class="str">"page"</span>: <span class="num">1</span>,
+        <span class="str">"sparkline"</span>: <span class="str">"false"</span>,
+        <span class="str">"price_change_percentage"</span>: <span class="str">"24h,7d"</span>,
+    }
+
+    response = requests.<span class="fn">get</span>(url, params=params, timeout=<span class="num">10</span>)
+    <span class="fn">print</span>(<span class="str">"Status code:"</span>, response.status_code)
+    response.<span class="fn">raise_for_status</span>()
+
+    data = response.<span class="fn">json</span>()
+
+    output_path = <span class="cls">Path</span>(<span class="str">"coingecko_response.json"</span>)
+    output_path.<span class="fn">write_text</span>(
+        json.<span class="fn">dumps</span>(data, indent=<span class="num">4</span>, ensure_ascii=<span class="dec">False</span>),
+        encoding=<span class="str">"utf-8"</span>,
+    )
+
+    <span class="fn">print</span>(<span class="str">f"Zapisano dane do pliku: <span class="dec">{output_path}</span>"</span>)
+
+    <span class="kw">if</span> data:
+        <span class="fn">print</span>(<span class="str">"\nDostępne pola dla pierwszego rekordu:"</span>)
+        <span class="kw">for</span> key <span class="kw">in</span> data[<span class="num">0</span>].<span class="fn">keys</span>():
+            <span class="fn">print</span>(<span class="str">"-"</span>, key)
+
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    <span class="fn">main</span>()</pre>
+
+      <h3>Przykładowe wyjście (stdout)</h3>
+      <pre>Status code: 200
+Zapisano dane do pliku: coingecko_response.json
+
+Dostępne pola dla pierwszego rekordu:
+- id
+- symbol
+- name
+- image
+- current_price
+- market_cap
+- market_cap_rank
+- fully_diluted_valuation
+- total_volume
+- high_24h
+- low_24h
+- price_change_24h
+- price_change_percentage_24h
+- market_cap_change_24h
+- market_cap_change_percentage_24h
+- circulating_supply
+- total_supply
+- max_supply
+- ath
+- ath_change_percentage
+- ath_date
+- atl
+- atl_change_percentage
+- atl_date
+- roi
+- last_updated
+- price_change_percentage_24h_in_currency
+- price_change_percentage_7d_in_currency</pre>
+
+      <h3>Fragment pliku wyjściowego <code>coingecko_response.json</code></h3>
+      <pre>[
+    {
+        <span class="str">"id"</span>: <span class="str">"bitcoin"</span>,
+        <span class="str">"symbol"</span>: <span class="str">"btc"</span>,
+        <span class="str">"name"</span>: <span class="str">"Bitcoin"</span>,
+        <span class="str">"current_price"</span>: <span class="num">76182</span>,
+        <span class="str">"market_cap"</span>: <span class="num">1525437558394</span>,
+        <span class="str">"market_cap_rank"</span>: <span class="num">1</span>,
+        <span class="str">"ath"</span>: <span class="num">126080</span>,
+        <span class="str">"roi"</span>: <span class="dec">null</span>,
+        <span class="str">"last_updated"</span>: <span class="str">"2026-04-28T17:46:16.705Z"</span>,
+        <span class="str">"price_change_percentage_24h_in_currency"</span>: <span class="num">-0.8069524492506842</span>,
+        <span class="str">"price_change_percentage_7d_in_currency"</span>: <span class="num">0.4987149980680044</span>
+    },
+    <span class="cmt">// ... ethereum, solana ...</span>
+]</pre>
+
+      <div class="callout callout-success">
+        <span class="callout-icon">✅</span>
+        <div class="callout-body">
+          <strong>Punkt wejścia:</strong> blok <code>if __name__ == "__main__": main()</code>
+          zapewnia, że <code>main()</code> jest wywoływane tylko przy bezpośrednim uruchomieniu
+          skryptu — nie przy imporcie modułu w innym pliku.
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <span>Projekt: <strong>CryptoMarket DB</strong> · Bazy Danych, semestr 7</span>
+      <span>Wygenerowano na podstawie docstringów modułu <code>main.py</code> · v0.1.0</span>
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>

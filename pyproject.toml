@@ -1,7 +1,7 @@
 [project]
 name = "project"
 version = "0.1.0"
-description = "Add your description here"
+description = "Cryptocurrency market data ingestion from CoinGecko API — databases course project"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
