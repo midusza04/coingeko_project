@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -499,31 +499,31 @@
 
     <nav>
       <div class="nav-section">
-        <div class="nav-title">Moduł</div>
-        <a href="#overview"    class="nav-link"><span class="dot"></span>Przegląd</a>
-        <a href="#imports"     class="nav-link"><span class="dot imp-dot"></span>Importy</a>
-        <a href="#usage"       class="nav-link"><span class="dot"></span>Użycie</a>
+        <div class="nav-title">Module</div>
+        <a href="#overview"    class="nav-link"><span class="dot"></span>Overview</a>
+        <a href="#imports"     class="nav-link"><span class="dot imp-dot"></span>Imports</a>
+        <a href="#usage"       class="nav-link"><span class="dot"></span>Usage</a>
       </div>
 
       <div class="nav-section" style="margin-top:16px;">
-        <div class="nav-title">Funkcje</div>
+        <div class="nav-title">Functions</div>
         <a href="#fn-main"     class="nav-link"><span class="dot fn-dot"></span>main()</a>
       </div>
 
       <div class="nav-section" style="margin-top:16px;">
-        <div class="nav-title">Szczegóły</div>
-        <a href="#params"      class="nav-link"><span class="dot"></span>Parametry HTTP</a>
-        <a href="#side-effects"class="nav-link"><span class="dot"></span>Efekty uboczne</a>
-        <a href="#exceptions"  class="nav-link"><span class="dot exc-dot"></span>Wyjątki</a>
-        <a href="#example"     class="nav-link"><span class="dot"></span>Przykład</a>
+        <div class="nav-title">Details</div>
+        <a href="#params"      class="nav-link"><span class="dot"></span>HTTP Parameters</a>
+        <a href="#side-effects"class="nav-link"><span class="dot"></span>Side Effects</a>
+        <a href="#exceptions"  class="nav-link"><span class="dot exc-dot"></span>Exceptions</a>
+        <a href="#example"     class="nav-link"><span class="dot"></span>Example</a>
       </div>
 
       <div class="nav-section" style="margin-top:16px;">
-        <div class="nav-title">Linki</div>
+        <div class="nav-title">Links</div>
         <a href="../README.md" class="nav-link"><span class="dot"></span>README</a>
-        <a href="../.docs/architecture.md" class="nav-link"><span class="dot"></span>Architektura</a>
-        <a href="../.docs/data-model.md"   class="nav-link"><span class="dot"></span>Model danych</a>
-        <a href="../.docs/diagrams.md"     class="nav-link"><span class="dot"></span>Diagramy</a>
+        <a href="../.docs/architecture.md" class="nav-link"><span class="dot"></span>Architecture</a>
+        <a href="../.docs/data-model.md"   class="nav-link"><span class="dot"></span>Data Model</a>
+        <a href="../.docs/diagrams.md"     class="nav-link"><span class="dot"></span>Diagrams</a>
       </div>
     </nav>
   </aside>
@@ -534,11 +534,11 @@
     <!-- PAGE HEADER -->
     <header class="page-header" id="overview">
       <div class="breadcrumb">project / main.py</div>
-      <h1 class="page-title">Moduł <span class="mono">main</span></h1>
+      <h1 class="page-title">Module <span class="mono">main</span></h1>
       <p class="page-subtitle">
-        Warstwa ingestion danych rynkowych kryptowalut z CoinGecko API.
-        Pobiera notowania Bitcoina, Ethereum i Solany i zapisuje odpowiedź
-        jako sformatowany plik JSON.
+        Cryptocurrency market data ingestion layer from the CoinGecko API.
+        Fetches quotes for Bitcoin, Ethereum, and Solana and saves the response
+        as a formatted JSON file.
       </p>
       <div class="meta-row">
         <span class="meta-chip"><span class="icon">📄</span> main.py</span>
@@ -552,31 +552,31 @@
     <section>
       <div class="section-header">
         <div class="section-icon icon-violet">📝</div>
-        <h2>Opis modułu</h2>
+        <h2>Module Description</h2>
       </div>
       <div class="docstring">
-        <p>Moduł pobiera aktualne dane rynkowe kryptowalut dla Bitcoina, Ethereum
-        i Solany z publicznego REST API CoinGecko v3 i zapisuje odpowiedź jako
-        sformatowany plik JSON.</p>
-        <p>Stanowi warstwę kolekcji danych dla projektu akademickiego z przedmiotu
-        <strong>Bazy Danych</strong> — zebrane rekordy JSON są materiałem źródłowym
-        do projektowania i zasilania schematu relacyjnej bazy danych.</p>
+        <p>This module retrieves current cryptocurrency market data for Bitcoin, Ethereum,
+        and Solana from the public CoinGecko v3 REST API and saves the response as a
+        formatted JSON file.</p>
+        <p>It serves as the data collection layer for the university
+        <strong>Advanced Databases</strong> course project — the collected JSON records
+        are source material for designing and populating a relational database schema.</p>
         <p>
-          <strong>Endpoint API:</strong><br>
+          <strong>API endpoint:</strong><br>
           <code>https://api.coingecko.com/api/v3/coins/markets</code>
         </p>
         <p>
-          <strong>Plik wyjściowy:</strong><br>
-          <code>coingecko_response.json</code> — tworzony / nadpisywany w bieżącym katalogu
+          <strong>Output file:</strong><br>
+          <code>coingecko_response.json</code> — created / overwritten in the current directory
         </p>
       </div>
 
       <div class="callout callout-info">
         <span class="callout-icon">💡</span>
         <div class="callout-body">
-          <strong>Typowe użycie:</strong> <code>python main.py</code><br>
-          Skrypt jest przeznaczony do uruchamiania bezpośrednio z CLI.
-          Może być też importowany i wywoływany jako <code>from main import main; main()</code>.
+          <strong>Typical usage:</strong> <code>python main.py</code><br>
+          The script is intended to be run directly from the CLI.
+          It can also be imported and called as <code>from main import main; main()</code>.
         </div>
       </div>
     </section>
@@ -585,26 +585,26 @@
     <section id="imports">
       <div class="section-header">
         <div class="section-icon icon-green">📦</div>
-        <h2>Importy</h2>
+        <h2>Imports</h2>
       </div>
       <div class="import-list">
         <div class="import-item">
           <span class="import-name">json</span>
           <span class="import-from">stdlib</span>
           <span class="badge badge-stdlib">stdlib</span>
-          <span class="import-desc">Serializacja i formatowanie danych JSON (<code>json.dumps</code>)</span>
+          <span class="import-desc">JSON serialization and formatting (<code>json.dumps</code>)</span>
         </div>
         <div class="import-item">
           <span class="import-name">pathlib.Path</span>
           <span class="import-from">stdlib</span>
           <span class="badge badge-stdlib">stdlib</span>
-          <span class="import-desc">Cross-platformowe operacje na ścieżkach plików (<code>Path.write_text</code>)</span>
+          <span class="import-desc">Cross-platform file path operations (<code>Path.write_text</code>)</span>
         </div>
         <div class="import-item">
           <span class="import-name">requests</span>
           <span class="import-from">PyPI ≥ 2.33.1</span>
           <span class="badge badge-pypi">PyPI</span>
-          <span class="import-desc">Wykonywanie żądań HTTP GET do CoinGecko API</span>
+          <span class="import-desc">HTTP GET requests to the CoinGecko API</span>
         </div>
       </div>
     </section>
@@ -613,19 +613,19 @@
     <section id="usage">
       <div class="section-header">
         <div class="section-icon icon-blue">▶</div>
-        <h2>Szybki start</h2>
+        <h2>Quick Start</h2>
       </div>
-      <pre><span class="cmt"># Uruchomienie z CLI</span>
+      <pre><span class="cmt"># Run from CLI</span>
 python main.py
 
-<span class="cmt"># Uruchomienie przez uv</span>
+<span class="cmt"># Run via uv</span>
 uv run python main.py
 
-<span class="cmt"># Import i wywołanie programowe</span>
+<span class="cmt"># Import and call programmatically</span>
 <span class="kw">from</span> main <span class="kw">import</span> main
 main()
 
-<span class="cmt"># Generowanie dokumentacji HTML (pydoc)</span>
+<span class="cmt"># Generate HTML documentation (pydoc)</span>
 python -m pydoc -w main</pre>
     </section>
 
@@ -633,7 +633,7 @@ python -m pydoc -w main</pre>
     <section id="fn-main">
       <div class="section-header">
         <div class="section-icon icon-blue">ƒ</div>
-        <h2>Funkcje</h2>
+        <h2>Functions</h2>
       </div>
 
       <div class="fn-card">
@@ -647,12 +647,12 @@ python -m pydoc -w main</pre>
         </div>
         <div class="fn-card-body">
           <div class="docstring">
-            Pobiera dane rynkowe kryptowalut z CoinGecko i zapisuje je lokalnie.<br><br>
-            Wysyła pojedyncze żądanie GET do endpointu <code>/coins/markets</code> publicznego API
-            CoinGecko v3, żądając statystyk rynkowych wyrażonych w USD dla Bitcoina,
-            Ethereum i Solany. Surowa odpowiedź JSON jest formatowana (<code>indent=4</code>) i
-            zapisywana do pliku <code>coingecko_response.json</code> w bieżącym katalogu roboczym.
-            Nazwy pól pierwszego rekordu są wypisywane na stdout w celach inspekcyjnych.
+            Fetches cryptocurrency market data from CoinGecko and saves it locally.<br><br>
+            Sends a single GET request to the <code>/coins/markets</code> endpoint of the
+            public CoinGecko v3 API, requesting USD-denominated market statistics for Bitcoin,
+            Ethereum, and Solana. The raw JSON response is formatted (<code>indent=4</code>) and
+            written to <code>coingecko_response.json</code> in the current working directory.
+            Field names from the first record are printed to stdout for quick inspection.
           </div>
         </div>
       </div>
@@ -662,54 +662,54 @@ python -m pydoc -w main</pre>
     <section id="params">
       <div class="section-header">
         <div class="section-icon icon-blue">⚙</div>
-        <h2>Parametry zapytania HTTP</h2>
+        <h2>HTTP Query Parameters</h2>
       </div>
-      <p>Poniższe parametry są przekazywane jako query string do endpointu
-         <code>GET /api/v3/coins/markets</code>:</p>
+      <p>The following parameters are passed as a query string to the
+         <code>GET /api/v3/coins/markets</code> endpoint:</p>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Parametr</th>
-              <th>Wartość</th>
-              <th>Opis</th>
+              <th>Parameter</th>
+              <th>Value</th>
+              <th>Description</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td><span class="param-name">vs_currency</span></td>
               <td><span class="param-val">"usd"</span></td>
-              <td>Wszystkie wartości monetarne wyrażone w dolarach amerykańskich</td>
+              <td>All monetary values expressed in US dollars</td>
             </tr>
             <tr>
               <td><span class="param-name">ids</span></td>
               <td><span class="param-val">"bitcoin,ethereum,solana"</span></td>
-              <td>Identyfikatory monet do pobrania (CoinGecko IDs)</td>
+              <td>Coin identifiers to fetch (CoinGecko IDs)</td>
             </tr>
             <tr>
               <td><span class="param-name">order</span></td>
               <td><span class="param-val">"market_cap_desc"</span></td>
-              <td>Sortowanie wyników malejąco po kapitalizacji rynkowej</td>
+              <td>Results sorted descending by market capitalisation</td>
             </tr>
             <tr>
               <td><span class="param-name">per_page</span></td>
               <td><span class="param-val">10</span></td>
-              <td>Maksymalna liczba rekordów na stronę paginacji</td>
+              <td>Maximum number of records per pagination page</td>
             </tr>
             <tr>
               <td><span class="param-name">page</span></td>
               <td><span class="param-val">1</span></td>
-              <td>Numer strony (pobieramy zawsze pierwszą)</td>
+              <td>Page number (always the first page)</td>
             </tr>
             <tr>
               <td><span class="param-name">sparkline</span></td>
               <td><span class="param-val">"false"</span></td>
-              <td>Pomija dane sparkline — 7-dniowy mini-wykres cen</td>
+              <td>Omits sparkline data — 7-day mini price chart</td>
             </tr>
             <tr>
               <td><span class="param-name">price_change_percentage</span></td>
               <td><span class="param-val">"24h,7d"</span></td>
-              <td>Dodaje pola ze zmianami procentowymi za 24h i 7 dni</td>
+              <td>Includes percentage change fields for 24h and 7 days</td>
             </tr>
           </tbody>
         </table>
@@ -720,34 +720,34 @@ python -m pydoc -w main</pre>
     <section id="side-effects">
       <div class="section-header">
         <div class="section-icon icon-yellow">⚡</div>
-        <h2>Efekty uboczne</h2>
+        <h2>Side Effects</h2>
       </div>
       <div class="effect-list">
         <div class="effect-item">
           <span class="effect-icon">🌐</span>
-          <span>Wykonuje <strong>jedno wychodzące żądanie HTTP GET</strong> z timeoutem
-            <code>10</code> sekund do <code>api.coingecko.com</code></span>
+          <span>Performs <strong>one outbound HTTP GET request</strong> with a
+            <code>10</code>-second timeout to <code>api.coingecko.com</code></span>
         </div>
         <div class="effect-item">
           <span class="effect-icon">💾</span>
-          <span>Tworzy lub <strong>nadpisuje</strong> plik
-            <code>coingecko_response.json</code> w bieżącym katalogu roboczym
-            (sformatowany JSON, <code>indent=4</code>, <code>ensure_ascii=False</code>)</span>
+          <span>Creates or <strong>overwrites</strong> the file
+            <code>coingecko_response.json</code> in the current working directory
+            (formatted JSON, <code>indent=4</code>, <code>ensure_ascii=False</code>)</span>
         </div>
         <div class="effect-item">
           <span class="effect-icon">🖨</span>
-          <span>Wypisuje na <strong>stdout</strong>: kod statusu HTTP, ścieżkę pliku
-            wyjściowego, listę nazw pól JSON z pierwszego rekordu</span>
+          <span>Prints to <strong>stdout</strong>: HTTP status code, output file path,
+            and the list of JSON field names from the first record</span>
         </div>
       </div>
 
       <div class="callout callout-warning" style="margin-top:16px;">
         <span class="callout-icon">⚠️</span>
         <div class="callout-body">
-          <strong>Uwaga:</strong> każde kolejne wywołanie <strong>nadpisuje</strong>
-          <code>coingecko_response.json</code>. Dane historyczne nie są zachowywane
-          — w planowanej wersji każdy snapshot będzie zapisywany do bazy danych
-          z sygnaturą czasową.
+          <strong>Note:</strong> each subsequent call <strong>overwrites</strong>
+          <code>coingecko_response.json</code>. Historical data is not preserved
+          — in the full system each snapshot is stored in the database
+          with a timestamp (see <code>app.py</code>).
         </div>
       </div>
     </section>
@@ -756,31 +756,31 @@ python -m pydoc -w main</pre>
     <section id="exceptions">
       <div class="section-header">
         <div class="section-icon icon-red">⚠</div>
-        <h2>Wyjątki</h2>
+        <h2>Exceptions</h2>
       </div>
       <div class="exc-list">
         <div class="exc-item">
           <span class="exc-name">requests.exceptions<br>.HTTPError</span>
-          <span class="exc-desc">Serwer zwrócił kod odpowiedzi <strong>4xx</strong> lub
-            <strong>5xx</strong>. Wyzwalany przez <code>response.raise_for_status()</code>
-            po każdym żądaniu.</span>
+          <span class="exc-desc">The server returned a <strong>4xx</strong> or
+            <strong>5xx</strong> status code. Raised by <code>response.raise_for_status()</code>
+            after each request.</span>
         </div>
         <div class="exc-item">
           <span class="exc-name">requests.exceptions<br>.ConnectionError</span>
-          <span class="exc-desc">Brak połączenia sieciowego lub host
-            <code>api.coingecko.com</code> jest niedostępny (DNS failure, refused
-            connection itp.).</span>
+          <span class="exc-desc">No network connection or the host
+            <code>api.coingecko.com</code> is unreachable (DNS failure, refused
+            connection, etc.).</span>
         </div>
         <div class="exc-item">
           <span class="exc-name">requests.exceptions<br>.Timeout</span>
-          <span class="exc-desc">Serwer nie odpowiedział w ciągu <strong>10 sekund</strong>
-            (<code>timeout=10</code> w <code>requests.get</code>).</span>
+          <span class="exc-desc">The server did not respond within <strong>10 seconds</strong>
+            (<code>timeout=10</code> in <code>requests.get</code>).</span>
         </div>
         <div class="exc-item">
           <span class="exc-name">OSError</span>
-          <span class="exc-desc">Błąd zapisu pliku — brak uprawnień do katalogu, brak
-            wolnego miejsca na dysku lub inny błąd systemu plików
-            podczas <code>Path.write_text()</code>.</span>
+          <span class="exc-desc">File write error — insufficient directory permissions, no
+            free disk space, or another filesystem error
+            during <code>Path.write_text()</code>.</span>
         </div>
       </div>
     </section>
@@ -789,10 +789,10 @@ python -m pydoc -w main</pre>
     <section id="example">
       <div class="section-header">
         <div class="section-icon icon-green">💡</div>
-        <h2>Przykład działania</h2>
+        <h2>Example</h2>
       </div>
 
-      <h3>Kod źródłowy</h3>
+      <h3>Source Code</h3>
       <pre><span class="kw">import</span> json
 <span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cls">Path</span>
 <span class="kw">import</span> requests
@@ -823,10 +823,10 @@ python -m pydoc -w main</pre>
         encoding=<span class="str">"utf-8"</span>,
     )
 
-    <span class="fn">print</span>(<span class="str">f"Zapisano dane do pliku: <span class="dec">{output_path}</span>"</span>)
+    <span class="fn">print</span>(<span class="str">f"Saved data to file: <span class="dec">{output_path}</span>"</span>)
 
     <span class="kw">if</span> data:
-        <span class="fn">print</span>(<span class="str">"\nDostępne pola dla pierwszego rekordu:"</span>)
+        <span class="fn">print</span>(<span class="str">"\nAvailable fields for the first record:"</span>)
         <span class="kw">for</span> key <span class="kw">in</span> data[<span class="num">0</span>].<span class="fn">keys</span>():
             <span class="fn">print</span>(<span class="str">"-"</span>, key)
 
@@ -834,11 +834,11 @@ python -m pydoc -w main</pre>
 <span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
     <span class="fn">main</span>()</pre>
 
-      <h3>Przykładowe wyjście (stdout)</h3>
+      <h3>Sample Output (stdout)</h3>
       <pre>Status code: 200
-Zapisano dane do pliku: coingecko_response.json
+Saved data to file: coingecko_response.json
 
-Dostępne pola dla pierwszego rekordu:
+Available fields for the first record:
 - id
 - symbol
 - name
@@ -868,7 +868,7 @@ Dostępne pola dla pierwszego rekordu:
 - price_change_percentage_24h_in_currency
 - price_change_percentage_7d_in_currency</pre>
 
-      <h3>Fragment pliku wyjściowego <code>coingecko_response.json</code></h3>
+      <h3>Sample <code>coingecko_response.json</code> fragment</h3>
       <pre>[
     {
         <span class="str">"id"</span>: <span class="str">"bitcoin"</span>,
@@ -889,17 +889,17 @@ Dostępne pola dla pierwszego rekordu:
       <div class="callout callout-success">
         <span class="callout-icon">✅</span>
         <div class="callout-body">
-          <strong>Punkt wejścia:</strong> blok <code>if __name__ == "__main__": main()</code>
-          zapewnia, że <code>main()</code> jest wywoływane tylko przy bezpośrednim uruchomieniu
-          skryptu — nie przy imporcie modułu w innym pliku.
+          <strong>Entry point:</strong> the <code>if __name__ == "__main__": main()</code>
+          block ensures <code>main()</code> runs only when the script is executed directly
+          — not when the module is imported elsewhere.
         </div>
       </div>
     </section>
 
     <!-- FOOTER -->
     <footer>
-      <span>Projekt: <strong>CryptoMarket DB</strong> · Bazy Danych, semestr 7</span>
-      <span>Wygenerowano na podstawie docstringów modułu <code>main.py</code> · v0.1.0</span>
+      <span>Project: <strong>CryptoMarket DB</strong> · Advanced Databases, semester 7</span>
+      <span>Generated from <code>main.py</code> module docstrings · v0.1.0</span>
     </footer>
 
   </main>

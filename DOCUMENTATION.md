@@ -1,17 +1,17 @@
 # Technical Documentation — Cryptocurrency Market Analysis System
 
 > **Advanced Databases – Final Project**  
-> Automatyka i Robotyka II Stopnia · Informatyka w Sterowaniu i Zarządzaniu  
+> Master's in Automation and Robotics · Computer Science in Control and Management  
 > **Team:** Michał Dusza · Szymon Bugajski · Mateusz Basiura
 
 ### Related documentation
 
-| Document | Language | Purpose |
-|----------|----------|---------|
-| [`SPRAWOZDANIE.md`](SPRAWOZDANIE.md) | PL | Academic report — full project description for evaluation |
-| [`README.md`](README.md) | PL/EN | Quick start, repo structure, documentation index |
-| [`.docs/`](.docs/) | PL | Technical docs split by topic (architecture, data model, API, diagrams) |
-| [`docs/index.html`](docs/index.html) | PL | Static HTML documentation portal |
+| File | Purpose |
+|------|---------|
+| [`README.md`](README.md) | Quick start, repo structure, documentation index |
+| [`DOCUMENTATION.md`](DOCUMENTATION.md) | Technical documentation: DDL, SQL, modules |
+| [`.docs/`](.docs/) | Concise technical docs split by topic |
+| [`docs/index.html`](docs/index.html) | Static HTML documentation portal |
 
 ---
 

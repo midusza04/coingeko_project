@@ -1,33 +1,33 @@
-# Architektura systemu
+# System Architecture
 
-> Pełny opis akademicki: [`SPRAWOZDANIE.md` §5](../SPRAWOZDANIE.md)  
-> Wersja angielska: [`DOCUMENTATION.md` §1](../DOCUMENTATION.md)
-
----
-
-## Przegląd
-
-System Analizy Rynku Kryptowalut to kompletna aplikacja end-to-end:
-
-1. **Pobiera** dane historyczne i bieżące z CoinGecko REST API v3.
-2. **Przechowuje** je w znormalizowanej bazie SQLite (`crypto_market.db`).
-3. **Prezentuje** w interaktywnych wizualizacjach Plotly — przez Streamlit (`app.py`) lub Jupyter (`crypto_market_analysis.ipynb`).
+> Full academic description: [`SPRAWOZDANIE.md` §5](../SPRAWOZDANIE.md)  
+> Extended technical reference: [`DOCUMENTATION.md` §1](../DOCUMENTATION.md)
 
 ---
 
-## Architektura 3-warstwowa
+## Overview
+
+The Cryptocurrency Market Analysis System is a complete end-to-end application that:
+
+1. **Fetches** historical and live data from CoinGecko REST API v3.
+2. **Stores** it in a normalised SQLite database (`crypto_market.db`).
+3. **Presents** it in interactive Plotly visualizations — via Streamlit (`app.py`) or Jupyter (`crypto_market_analysis.ipynb`).
+
+---
+
+## 3-Tier Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                   WARSTWA PREZENTACJI                    │
+│                   PRESENTATION LAYER                     │
 │                                                         │
 │   📓 crypto_market_analysis.ipynb    🌐 app.py          │
-│   11 etapów · ipywidgets             6 stron Streamlit │
+│   11 stages · ipywidgets             6 Streamlit pages  │
 │   Plotly charts                      Plotly charts       │
 └──────────────────────┬──────────────────────────────────┘
                        │ pd.read_sql (SELECT + JOIN)
 ┌──────────────────────▼──────────────────────────────────┐
-│                   WARSTWA PRZECHOWYWANIA                 │
+│                   STORAGE LAYER                          │
 │                                                         │
 │         🗄️  SQLite 3 — crypto_market.db                 │
 │         cryptocurrencies | market_snapshots              │
@@ -35,7 +35,7 @@ System Analizy Rynku Kryptowalut to kompletna aplikacja end-to-end:
 └──────────────────────┬──────────────────────────────────┘
                        │ INSERT OR REPLACE / INSERT
 ┌──────────────────────▼──────────────────────────────────┐
-│                   WARSTWA POZYSKIWANIA DANYCH            │
+│                   DATA ACQUISITION LAYER                 │
 │                                                         │
 │   fetch_market_chart()        fetch_markets_current()   │
 │   /coins/{id}/market_chart    /coins/markets            │
@@ -46,125 +46,125 @@ System Analizy Rynku Kryptowalut to kompletna aplikacja end-to-end:
 
 ---
 
-## Komponenty
+## Components
 
-### `app.py` — główna aplikacja (Streamlit)
+### `app.py` — main application (Streamlit)
 
-**Odpowiedzialności:**
-- Inicjalizacja bazy (`create_database()`)
-- Pobieranie danych z API (`fetch_market_chart`, `fetch_markets_current`)
-- Zapis do SQLite (`store_market_chart`, `store_current`)
-- Odczyt i cache danych (`load_snapshots`, `load_db_stats`)
-- 6 stron wizualizacji (Overview, Data Collection, Time Series, Quantitative, Dashboard, Correlation)
+**Responsibilities:**
+- Database initialisation (`create_database()`)
+- API data fetching (`fetch_market_chart`, `fetch_markets_current`)
+- SQLite writes (`store_market_chart`, `store_current`)
+- Data reads and caching (`load_snapshots`, `load_db_stats`)
+- 6 visualization pages (Overview, Data Collection, Time Series, Quantitative, Dashboard, Correlation)
 
-**Uruchomienie:** `uv run streamlit run app.py` → `http://localhost:8501`
+**Run:** `uv run streamlit run app.py` → `http://localhost:8501`
 
-### `crypto_market_analysis.ipynb` — notebook analityczny
+### `crypto_market_analysis.ipynb` — analytical notebook
 
-**Odpowiedzialności:**
-- Te same funkcje DB/API co `app.py` (zduplikowane w komórkach)
-- 11 etapów: od DDL przez ETL po wizualizacje z ipywidgets
-- Środowisko eksploracji danych bez serwera webowego
+**Responsibilities:**
+- Same DB/API functions as `app.py` (duplicated in cells)
+- 11 stages: from DDL through ETL to ipywidgets visualizations
+- Data exploration without a web server
 
-**Uruchomienie:** `uv run jupyter lab crypto_market_analysis.ipynb`
+**Run:** `uv run jupyter lab crypto_market_analysis.ipynb`
 
-### `crypto_market.db` — baza SQLite
+### `crypto_market.db` — SQLite database
 
-- Tworzona automatycznie przy pierwszym uruchomieniu `app.py` lub notebooka (Stage 3)
-- 3 tabele, klucze obce, UNIQUE, 2 jawne indeksy
-- Plik binarny w katalogu projektu (nie commitowany do repo w pełnej wersji)
+- Created automatically on first run of `app.py` or the notebook (Stage 3)
+- 3 tables, foreign keys, UNIQUE constraint, 2 explicit indexes
+- Binary file in the project directory
 
-### Pliki legacy
+### Legacy files
 
-| Plik | Rola |
+| File | Role |
 |------|------|
-| `main.py` | Prosty fetcher: 3 monety → `coingecko_response.json` (bez bazy) |
-| `test.ipynb` | Eksploracyjna inspekcja odpowiedzi API |
-| `coingecko_response.json` | Przykładowa odpowiedź `/coins/markets` |
+| `main.py` | Simple fetcher: 3 coins → `coingecko_response.json` (no DB) |
+| `test.ipynb` | Exploratory API response inspection |
+| `coingecko_response.json` | Sample `/coins/markets` response |
 
 ---
 
-## Przepływ danych
+## Data Flow
 
-### Pobieranie historyczne
+### Historical fetch
 
-| Krok | Komponent | Akcja |
-|------|-----------|-------|
-| 1 | UI (Streamlit / notebook) | Użytkownik inicjuje pobieranie |
+| Step | Component | Action |
+|------|-----------|--------|
+| 1 | UI (Streamlit / notebook) | User initiates fetch |
 | 2 | `fetch_market_chart(coin_id, days=365)` | `GET /coins/{id}/market_chart` |
-| 3 | API | Zwraca `{prices, market_caps, total_volumes}` jako tablice `[ts_ms, value]` |
-| 4 | `store_market_chart()` | Konwersja `ts_ms` → `YYYY-MM-DD` (UTC) |
+| 3 | API | Returns `{prices, market_caps, total_volumes}` as `[ts_ms, value]` arrays |
+| 4 | `store_market_chart()` | Converts `ts_ms` → `YYYY-MM-DD` (UTC) |
 | 5 | SQLite | `INSERT OR REPLACE INTO market_snapshots` (bulk `executemany`) |
-| 6 | `time.sleep(10)` | Opóźnienie między monetami (rate limit) |
-| 7 | Powtórz | Dla każdej z 5 monet |
+| 6 | `time.sleep(10)` | Delay between coins (rate limit) |
+| 7 | Repeat | For each of 5 coins |
 
-### Pobieranie bieżącego snapshotu
+### Live snapshot fetch
 
-| Krok | Komponent | Akcja |
-|------|-----------|-------|
+| Step | Component | Action |
+|------|-----------|--------|
 | 1 | `fetch_markets_current()` | `GET /coins/markets?ids=bitcoin,ethereum,solana,binancecoin,ripple` |
-| 2 | API | Zwraca listę 5 obiektów z danymi live |
-| 3 | `store_current()` | `INSERT INTO market_current` z `collected_at = UTC now` |
+| 2 | API | Returns list of 5 live coin objects |
+| 3 | `store_current()` | `INSERT INTO market_current` with `collected_at = UTC now` |
 
-### Odczyt do wizualizacji
+### Read for visualization
 
-| Krok | Komponent | Akcja |
-|------|-----------|-------|
+| Step | Component | Action |
+|------|-----------|--------|
 | 1 | `load_snapshots()` | `SELECT … FROM market_snapshots JOIN cryptocurrencies` |
 | 2 | pandas | `pd.read_sql` → DataFrame |
-| 3 | Plotly | Filtrowanie, agregacja, renderowanie wykresu |
+| 3 | Plotly | Filter, aggregate, render chart |
 
 ---
 
-## Kluczowe decyzje projektowe
+## Key Design Decisions
 
-| Decyzja | Uzasadnienie |
-|---------|--------------|
-| **SQLite** | Zero konfiguracji, jeden plik, pełne SQL + FK + indeksy — idealne dla projektu lokalnego |
-| **INSERT OR REPLACE** | Idempotentny zapis historyczny — ponowne pobieranie nie duplikuje wierszy |
-| **`executemany` + `?`** | Bezpieczne parametryzowane zapytania — ochrona przed SQL injection |
-| **`@st.cache_data(ttl=60)`** | Cache odczytu DB w Streamlit — mniej zapytań przy nawigacji |
-| **`uv run`** | Automatyczne użycie `.venv` bez ręcznej aktywacji |
-| **Oddzielenie ETL od UI** | Notebook i Streamlit czytają z tej samej bazy — warstwy niezależne |
+| Decision | Rationale |
+|----------|-----------|
+| **SQLite** | Zero configuration, single file, full SQL + FK + indexes — ideal for local projects |
+| **INSERT OR REPLACE** | Idempotent historical writes — re-fetching never duplicates rows |
+| **`executemany` + `?`** | Parameterised queries — SQL injection protection |
+| **`@st.cache_data(ttl=60)`** | Streamlit DB read cache — fewer queries on navigation |
+| **`uv run`** | Automatic `.venv` usage without manual activation |
+| **ETL / UI separation** | Notebook and Streamlit read from the same DB — independent layers |
 
 ---
 
-## Stos technologiczny
+## Tech Stack
 
-| Warstwa | Technologie |
-|---------|-------------|
-| Język | Python 3.13 |
-| Pakiety | uv (`pyproject.toml` + `uv.lock`) |
+| Layer | Technologies |
+|-------|-------------|
+| Language | Python 3.13 |
+| Packages | uv (`pyproject.toml` + `uv.lock`) |
 | HTTP | requests 2.33+ |
-| Baza | sqlite3 (stdlib) |
-| Dane | pandas 2.2+ |
-| Wykresy | Plotly 6.7+ |
+| Database | sqlite3 (stdlib) |
+| Data | pandas 2.2+ |
+| Charts | Plotly 6.7+ |
 | Web UI | Streamlit 1.57+ |
 | Notebook | JupyterLab 4 + ipywidgets 8.1+ |
-| API | CoinGecko v3 (publiczne, bez klucza) |
+| API | CoinGecko v3 (public, no API key) |
 
 ---
 
-## Obsługa błędów
+## Error Handling
 
-| Sytuacja | Mechanizm | Skutek |
-|----------|-----------|--------|
-| HTTP 4xx/5xx | `response.raise_for_status()` | `HTTPError` — komunikat w UI |
-| HTTP 429 (rate limit) | Obsługa w warstwie UI | Komunikat „spróbuj ponownie za chwilę” |
-| Timeout (>20s) | `timeout=20` w `requests.get` | `Timeout` exception |
-| Brak sieci | `ConnectionError` | Komunikat błędu w Streamlit / traceback w notebooku |
-| Pusta baza | Sprawdzenie w UI | Strony analiz pokazują komunikat „brak danych” |
-
----
-
-## Ograniczenia
-
-1. **Rate limit API** — 10 s opóźnienia między żądaniami; pełne pobieranie historyczne trwa ~50 s.
-2. **Lokalna baza** — SQLite nie obsługuje współbieżnych zapisów z wielu procesów.
-3. **Brak harmonogramowania** — dane pobierane ręcznie (przycisk w UI lub re-run notebooka).
-4. **5 monet hardkodowanych** — lista `COINS` w `app.py` i notebooku.
-5. **Brak autentykacji** — aplikacja Streamlit dostępna lokalnie bez logowania.
+| Situation | Mechanism | Result |
+|-----------|-----------|--------|
+| HTTP 4xx/5xx | `response.raise_for_status()` | `HTTPError` — message in UI |
+| HTTP 429 (rate limit) | UI layer handling | "Try again shortly" message |
+| Timeout (>20s) | `timeout=20` in `requests.get` | `Timeout` exception |
+| No network | `ConnectionError` | Error in Streamlit / traceback in notebook |
+| Empty database | UI check | Analysis pages show "no data" message |
 
 ---
 
-*Diagramy: [`diagrams.md`](diagrams.md) · Schemat DB: [`data-model.md`](data-model.md)*
+## Limitations
+
+1. **API rate limit** — 10 s delay between requests; full historical fetch takes ~50 s.
+2. **Local database** — SQLite does not support concurrent writes from multiple processes.
+3. **No scheduling** — data fetched manually (UI button or notebook re-run).
+4. **5 hardcoded coins** — `COINS` list in `app.py` and notebook.
+5. **No authentication** — Streamlit app available locally without login.
+
+---
+
+*Diagrams: [`diagrams.md`](diagrams.md) · DB schema: [`data-model.md`](data-model.md)*

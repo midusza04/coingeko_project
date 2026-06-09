@@ -89,10 +89,10 @@ def main() -> None:
         encoding="utf-8",
     )
 
-    print(f"Zapisano dane do pliku: {output_path}")
+    print(f"Saved data to file: {output_path}")
 
     if data:
-        print("\nDostępne pola dla pierwszego rekordu:")
+        print("\nAvailable fields for the first record:")
         for key in data[0].keys():
             print("-", key)
 

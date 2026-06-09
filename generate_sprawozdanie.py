@@ -1,8 +1,8 @@
 """
-Generuje spójny raport akademicki SPRAWOZDANIE.docx.
-Źródło treści: SPRAWOZDANIE.md + DOCUMENTATION.md + .docs/
+Generates the academic report SPRAWOZDANIE.docx.
+Content source: SPRAWOZDANIE.md + DOCUMENTATION.md + .docs/
 
-Uruchomienie:
+Usage:
     uv run python generate_sprawozdanie.py
 """
 
@@ -126,7 +126,7 @@ def render_mermaid(code: str, name: str) -> Path | None:
     TMP_DIR.mkdir(exist_ok=True)
     encoded = base64.urlsafe_b64encode(code.encode()).decode()
     url = f"https://mermaid.ink/img/{encoded}?theme=default&bgColor=ffffff"
-    print(f"  Renderuję diagram: {name}...")
+    print(f"  Rendering diagram: {name}...")
     try:
         resp = requests.get(url, timeout=25)
         resp.raise_for_status()
@@ -135,7 +135,7 @@ def render_mermaid(code: str, name: str) -> Path | None:
         print(f"  OK: {name} ({len(resp.content) // 1024} KB)")
         return path
     except Exception as exc:
-        print(f"  Błąd {name}: {exc}")
+        print(f"  Error {name}: {exc}")
         return None
 
 
@@ -152,7 +152,7 @@ def add_diagram(doc: Document, path: Path | None, caption: str, width_cm: float 
             run.font.color.rgb = RGBColor(0x6B, 0x72, 0x80)
         doc.add_paragraph()
     else:
-        add_para(doc, f"[Diagram niedostępny: {caption}]", italic=True)
+        add_para(doc, f"[Diagram unavailable: {caption}]", italic=True)
 
 
 # ── diagram definitions ───────────────────────────────────────────────────────
@@ -187,19 +187,19 @@ erDiagram
         INTEGER market_cap_rank
         REAL ath
     }
-    cryptocurrencies ||--o{ market_snapshots : ma_snapshoty
-    cryptocurrencies ||--o{ market_current : ma_snapshoty_live
+    cryptocurrencies ||--o{ market_snapshots : has_snapshots
+    cryptocurrencies ||--o{ market_current : has_live_snapshots
 """,
     "architecture": """\
 flowchart TD
-    subgraph PRESENT["Warstwa prezentacji"]
-        NB["Jupyter Notebook\\n11 etapow"]
-        APP["Streamlit app.py\\n6 stron"]
+    subgraph PRESENT["Presentation layer"]
+        NB["Jupyter Notebook\\n11 stages"]
+        APP["Streamlit app.py\\n6 pages"]
     end
-    subgraph STORAGE["Warstwa przechowywania"]
+    subgraph STORAGE["Storage layer"]
         DB[("SQLite\\ncrypto_market.db")]
     end
-    subgraph COLLECT["Warstwa pozyskiwania"]
+    subgraph COLLECT["Data acquisition layer"]
         F1["fetch_market_chart"]
         F2["fetch_markets_current"]
     end
@@ -213,18 +213,18 @@ flowchart TD
 """,
     "sequence": """\
 sequenceDiagram
-    participant U as Uzytkownik
+    participant U as User
     participant S as Streamlit
     participant A as CoinGecko API
     participant D as SQLite
     U->>S: Fetch Historical Data
-    loop 5 monet
+    loop 5 coins
         S->>A: GET /coins/id/market_chart
         A-->>S: JSON prices market_caps volumes
         S->>D: INSERT OR REPLACE market_snapshots
         S->>S: sleep 10s
     end
-    S-->>U: 1826 wierszy zapisanych
+    S-->>U: 1826 rows saved
 """,
 }
 
@@ -232,7 +232,7 @@ sequenceDiagram
 # ── build document ────────────────────────────────────────────────────────────
 
 def build() -> None:
-    print("Generuję diagramy...")
+    print("Generating diagrams...")
     rendered = {k: render_mermaid(v, k) for k, v in DIAGRAMS.items()}
     time.sleep(0.3)
 
@@ -247,14 +247,14 @@ def build() -> None:
     style.font.name = "Calibri"
     style.font.size = Pt(11)
 
-    # ══ STRONA TYTUŁOWA ══════════════════════════════════════════════════════
+    # ══ TITLE PAGE ═══════════════════════════════════════════════════════════
     doc.add_paragraph()
     doc.add_paragraph()
 
     for text, size, bold, color in [
-        ("POLITECHNIKA", 14, True, "1F3864"),
-        ("Automatyka i Robotyka II Stopnia", 12, False, "404040"),
-        ("Informatyka w Sterowaniu i Zarządzaniu", 12, False, "404040"),
+        ("UNIVERSITY OF TECHNOLOGY", 14, True, "1F3864"),
+        ("Automation and Robotics — Master's Degree", 12, False, "404040"),
+        ("Computer Science in Control and Management", 12, False, "404040"),
     ]:
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -268,14 +268,14 @@ def build() -> None:
 
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = p.add_run("System Analizy Rynku Kryptowalut")
+    r = p.add_run("Cryptocurrency Market Analysis System")
     r.bold = True
     r.font.size = Pt(24)
     r.font.color.rgb = RGBColor.from_string("1F3864")
 
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = p.add_run("Sprawozdanie z projektu")
+    r = p.add_run("Project Report")
     r.font.size = Pt(14)
     r.italic = True
     r.font.color.rgb = RGBColor.from_string("555555")
@@ -283,7 +283,7 @@ def build() -> None:
     doc.add_paragraph()
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = p.add_run("Przedmiot: Zaawansowane Bazy Danych")
+    r = p.add_run("Subject: Advanced Databases")
     r.bold = True
     r.font.size = Pt(13)
 
@@ -292,35 +292,35 @@ def build() -> None:
 
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = p.add_run("Autorzy:\nMichał Dusza\nSzymon Bugajski\nMateusz Basiura")
+    r = p.add_run("Authors:\nMichał Dusza\nSzymon Bugajski\nMateusz Basiura")
     r.font.size = Pt(12)
 
     doc.add_paragraph()
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = p.add_run("Maj 2026")
+    r = p.add_run("May 2026")
     r.font.size = Pt(12)
     r.font.color.rgb = RGBColor.from_string("555555")
 
     doc.add_page_break()
 
-    # ══ SPIS TREŚCI ═════════════════════════════════════════════════════════
-    add_heading(doc, "Spis treści", 1)
+    # ══ TABLE OF CONTENTS ════════════════════════════════════════════════════
+    add_heading(doc, "Table of Contents", 1)
     toc = [
-        "1. Wstęp i cel projektu",
-        "2. Zakres funkcjonalny",
-        "3. Zastosowane technologie",
-        "4. Struktura repozytorium",
-        "5. Projekt bazy danych",
-        "6. Architektura systemu",
-        "7. Implementacja — warstwa danych",
-        "8. Implementacja — warstwa prezentacji",
-        "9. Opis analiz i wizualizacji",
-        "10. Dane zebrane w projekcie",
-        "11. Instrukcja uruchomienia",
-        "12. Napotkane problemy i rozwiązania",
-        "13. Wnioski",
-        "14. Literatura i źródła",
+        "1. Introduction and project objectives",
+        "2. Functional scope",
+        "3. Technologies used",
+        "4. Repository structure",
+        "5. Database design",
+        "6. System architecture",
+        "7. Implementation — data layer",
+        "8. Implementation — presentation layer",
+        "9. Analyses and visualisations",
+        "10. Data collected in the project",
+        "11. Running instructions",
+        "12. Issues encountered and solutions",
+        "13. Conclusions",
+        "14. References",
     ]
     for item in toc:
         p = doc.add_paragraph(item)
@@ -330,93 +330,93 @@ def build() -> None:
 
     doc.add_page_break()
 
-    # ══ 1. WSTĘP ════════════════════════════════════════════════════════════
-    add_heading(doc, "1. Wstęp i cel projektu", 1)
+    # ══ 1. INTRODUCTION ═════════════════════════════════════════════════════
+    add_heading(doc, "1. Introduction and project objectives", 1)
 
-    add_heading(doc, "1.1 Kontekst", 2)
+    add_heading(doc, "1.1 Context", 2)
     add_para(doc,
-        "Rynek kryptowalut charakteryzuje się wyjątkowo wysoką zmiennością i generuje ogromną "
-        "ilość danych w czasie rzeczywistym. Monitorowanie i analiza tych danych wymaga "
-        "niezawodnej infrastruktury do ich przechowywania oraz narzędzi do interaktywnej "
-        "eksploracji. Projekt odpowiada na to zapotrzebowanie, łącząc pobieranie danych "
-        "przez REST API, relacyjne przechowywanie w bazie SQLite oraz interaktywne wizualizacje."
+        "The cryptocurrency market is characterised by exceptionally high volatility and generates "
+        "vast amounts of data in real time. Monitoring and analysing this data requires reliable "
+        "storage infrastructure and tools for interactive exploration. The project addresses this "
+        "need by combining data retrieval via REST API, relational storage in SQLite, and "
+        "interactive visualisations."
     )
 
-    add_heading(doc, "1.2 Cel projektu", 2)
-    add_para(doc, "Celem projektu było zaprojektowanie i zaimplementowanie systemu, który:")
+    add_heading(doc, "1.2 Project objectives", 2)
+    add_para(doc, "The aim of the project was to design and implement a system that:")
     for g in [
-        "Automatycznie pobiera historyczne i bieżące dane rynkowe kryptowalut z publicznego API CoinGecko.",
-        "Przechowuje dane w znormalizowanej relacyjnej bazie danych SQLite z kluczami, ograniczeniami i indeksami.",
-        "Prezentuje zebrane dane w interaktywnych wizualizacjach — w Jupyter i Streamlit.",
+        "Automatically retrieves historical and current cryptocurrency market data from the public CoinGecko API.",
+        "Stores data in a normalised relational SQLite database with keys, constraints, and indexes.",
+        "Presents the collected data in interactive visualisations — in Jupyter and Streamlit.",
     ]:
         add_numbered(doc, g)
 
-    add_heading(doc, "1.3 Motywacja wyboru tematu", 2)
+    add_heading(doc, "1.3 Motivation for the topic", 2)
     add_para(doc,
-        "Kryptowaluty stanowią doskonały przypadek użycia dla systemów baz danych zorientowanych "
-        "na szeregi czasowe: dane mają charakter cykliczny, wymagają idempotentnego zapisu, "
-        "a analizy statystyczne (korelacje, zmienność, rozkłady) są naturalnymi operacjami."
+        "Cryptocurrencies are an excellent use case for time-series database systems: data is "
+        "periodic, requires idempotent writes, and statistical analyses (correlations, volatility, "
+        "distributions) are natural operations."
     )
 
     doc.add_page_break()
 
-    # ══ 2. ZAKRES ═════════════════════════════════════════════════════════════
-    add_heading(doc, "2. Zakres funkcjonalny", 1)
+    # ══ 2. SCOPE ══════════════════════════════════════════════════════════════
+    add_heading(doc, "2. Functional scope", 1)
     add_table(doc,
-        ["Moduł", "Funkcjonalność"],
+        ["Module", "Functionality"],
         [
-            ["Pozyskiwanie danych", "365-dniowa historia (cena, kapitalizacja, wolumen) z CoinGecko API"],
-            ["Pozyskiwanie danych", "Bieżący snapshot rynkowy (24h high/low, ATH, rank, supply)"],
-            ["Baza danych", "3 tabele relacyjne: FK, UNIQUE, indeksy, normalizacja 3NF"],
-            ["Szeregi czasowe", "Wykres liniowy z MA, skalą log, 6 filtrami"],
-            ["Analiza ilościowa", "Bar / Box / Violin z agregacjami mean/max/min/std"],
-            ["Dashboard rynkowy", "KPI, tabela, grouped bar, heatmapa, treemap"],
-            ["Korelacja i zmienność", "Macierz korelacji, zmienność roczna, korelacja z BTC"],
+            ["Data acquisition", "365-day history (price, market cap, volume) from CoinGecko API"],
+            ["Data acquisition", "Current market snapshot (24h high/low, ATH, rank, supply)"],
+            ["Database", "3 relational tables: FK, UNIQUE, indexes, 3NF normalisation"],
+            ["Time series", "Line chart with MA, log scale, 6 filters"],
+            ["Quantitative analysis", "Bar / Box / Violin with mean/max/min/std aggregations"],
+            ["Market dashboard", "KPI, table, grouped bar, heatmap, treemap"],
+            ["Correlation & volatility", "Correlation matrix, annualised volatility, BTC correlation"],
         ],
         col_widths=[4.5, 12.5],
     )
 
-    # ══ 3. TECHNOLOGIE ════════════════════════════════════════════════════════
-    add_heading(doc, "3. Zastosowane technologie", 1)
+    # ══ 3. TECHNOLOGIES ═════════════════════════════════════════════════════
+    add_heading(doc, "3. Technologies used", 1)
     add_table(doc,
-        ["Komponent", "Technologia", "Wersja", "Uzasadnienie"],
+        ["Component", "Technology", "Version", "Rationale"],
         [
-            ["Język", "Python", "3.13", "Ekosystem data-science, SQLite w stdlib"],
-            ["Menedżer pakietów", "uv", "0.10.9+", "Deterministyczny uv.lock"],
-            ["Baza danych", "SQLite 3", "stdlib", "Zero-konfiguracyjna, pełny SQL + FK"],
-            ["Źródło danych", "CoinGecko API v3", "public", "Darmowy dostęp, dane historyczne"],
-            ["Notebook", "JupyterLab", "4.x", "ipywidgets + interaktywne analizy"],
-            ["Wizualizacja", "Plotly", "6.7", "Interaktywne wykresy"],
-            ["Aplikacja webowa", "Streamlit", "1.57", "Szybkie UI data-science"],
-            ["Dane", "pandas", "2.2+", "pd.read_sql jako warstwa SQL↔Python"],
+            ["Language", "Python", "3.13", "Data-science ecosystem, SQLite in stdlib"],
+            ["Package manager", "uv", "0.10.9+", "Deterministic uv.lock"],
+            ["Database", "SQLite 3", "stdlib", "Zero-config, full SQL + FK"],
+            ["Data source", "CoinGecko API v3", "public", "Free access, historical data"],
+            ["Notebook", "JupyterLab", "4.x", "ipywidgets + interactive analyses"],
+            ["Visualisation", "Plotly", "6.7", "Interactive charts"],
+            ["Web application", "Streamlit", "1.57", "Rapid data-science UI"],
+            ["Data", "pandas", "2.2+", "pd.read_sql as SQL↔Python layer"],
         ],
         col_widths=[4.0, 3.5, 2.5, 7.5],
     )
 
     doc.add_page_break()
 
-    # ══ 4. STRUKTURA REPO ═════════════════════════════════════════════════════
-    add_heading(doc, "4. Struktura repozytorium", 1)
+    # ══ 4. REPO STRUCTURE ═════════════════════════════════════════════════════
+    add_heading(doc, "4. Repository structure", 1)
     add_para(doc,
-        "Repozytorium projektu zawiera kod źródłowy, bazę danych, dokumentację "
-        "oraz wygenerowany raport. Poniżej opisano rolę każdego kluczowego pliku."
+        "The project repository contains source code, the database, documentation, "
+        "and the generated report. The role of each key file is described below."
     )
     add_table(doc,
-        ["Plik / folder", "Rola", "Status"],
+        ["File / folder", "Role", "Status"],
         [
-            ["app.py", "Główna aplikacja Streamlit — ETL + 6 stron UI", "główny"],
-            ["crypto_market_analysis.ipynb", "Notebook analityczny — 11 etapów", "główny"],
-            ["crypto_market.db", "Baza SQLite (tworzona automatycznie)", "główny"],
-            ["SPRAWOZDANIE.md", "Raport akademicki (Markdown)", "dokumentacja"],
-            ["DOCUMENTATION.md", "Dokumentacja techniczna (EN)", "dokumentacja"],
-            [".docs/", "Dokumentacja techniczna (PL) — architektura, model, API", "dokumentacja"],
-            ["main.py", "Prosty fetcher JSON (3 monety, bez bazy)", "legacy"],
-            ["generate_sprawozdanie.py", "Generator tego raportu DOCX", "narzędzie"],
+            ["app.py", "Main Streamlit application — ETL + 6 UI pages", "main"],
+            ["crypto_market_analysis.ipynb", "Analytical notebook — 11 stages", "main"],
+            ["crypto_market.db", "SQLite database (created automatically)", "main"],
+            ["SPRAWOZDANIE.md", "Academic report (Markdown)", "documentation"],
+            ["DOCUMENTATION.md", "Technical documentation", "documentation"],
+            [".docs/", "Technical docs — architecture, model, API", "documentation"],
+            ["main.py", "Simple JSON fetcher (3 coins, no DB)", "legacy"],
+            ["generate_sprawozdanie.py", "Generator for this DOCX report", "tool"],
         ],
         col_widths=[5.5, 8.5, 3.5],
     )
     add_para(doc,
-        "Przepływ danych w systemie:",
+        "Data flow in the system:",
         bold=True, space_after=4,
     )
     add_code(doc,
@@ -425,17 +425,17 @@ def build() -> None:
 
     doc.add_page_break()
 
-    # ══ 5. BAZA DANYCH ════════════════════════════════════════════════════════
-    add_heading(doc, "5. Projekt bazy danych", 1)
+    # ══ 5. DATABASE ═══════════════════════════════════════════════════════════
+    add_heading(doc, "5. Database design", 1)
 
-    add_heading(doc, "5.1 Model konceptualny (ERD)", 2)
+    add_heading(doc, "5.1 Conceptual model (ERD)", 2)
     add_para(doc,
-        "Baza składa się z trzech tabel w modelu gwiazdy: wymiar cryptocurrencies "
-        "oraz dwie tabele faktów — market_snapshots (historia) i market_current (live)."
+        "The database consists of three tables in a star schema: the cryptocurrencies dimension "
+        "and two fact tables — market_snapshots (history) and market_current (live)."
     )
-    add_diagram(doc, rendered.get("erd"), "Rys. 1. Diagram ERD — schemat relacyjnej bazy danych")
+    add_diagram(doc, rendered.get("erd"), "Fig. 1. ERD — relational database schema")
 
-    add_heading(doc, "5.2 DDL — definicje tabel", 2)
+    add_heading(doc, "5.2 DDL — table definitions", 2)
     add_code(doc, """\
 CREATE TABLE IF NOT EXISTS cryptocurrencies (
     id     TEXT PRIMARY KEY,
@@ -474,44 +474,44 @@ CREATE TABLE IF NOT EXISTS market_current (
 CREATE INDEX IF NOT EXISTS idx_current_collected_at
     ON market_current(collected_at);""")
 
-    add_heading(doc, "5.3 Opis tabel", 2)
+    add_heading(doc, "5.3 Table descriptions", 2)
 
-    add_para(doc, "cryptocurrencies — słownik monet", bold=True, space_after=2)
+    add_para(doc, "cryptocurrencies — coin dictionary", bold=True, space_after=2)
     add_table(doc,
-        ["Kolumna", "Typ", "Ograniczenia", "Opis"],
+        ["Column", "Type", "Constraints", "Description"],
         [
-            ["id", "TEXT", "PRIMARY KEY", "Identyfikator CoinGecko, np. bitcoin"],
-            ["symbol", "TEXT", "NOT NULL", "Ticker, np. BTC"],
-            ["name", "TEXT", "NOT NULL", "Pełna nazwa, np. Bitcoin"],
+            ["id", "TEXT", "PRIMARY KEY", "CoinGecko identifier, e.g. bitcoin"],
+            ["symbol", "TEXT", "NOT NULL", "Ticker, e.g. BTC"],
+            ["name", "TEXT", "NOT NULL", "Full name, e.g. Bitcoin"],
         ],
         col_widths=[3.0, 2.0, 3.5, 8.0],
     )
 
-    add_para(doc, "market_snapshots — historia dzienna", bold=True, space_after=2)
+    add_para(doc, "market_snapshots — daily history", bold=True, space_after=2)
     add_table(doc,
-        ["Kolumna", "Typ", "Opis"],
+        ["Column", "Type", "Description"],
         [
-            ["record_id", "INTEGER PK", "Klucz surogatowy"],
+            ["record_id", "INTEGER PK", "Surrogate key"],
             ["crypto_id", "TEXT FK", "→ cryptocurrencies.id"],
-            ["snapshot_date", "DATE", "Data YYYY-MM-DD (UTC)"],
-            ["price_usd", "REAL", "Cena zamknięcia USD"],
-            ["market_cap", "REAL", "Kapitalizacja rynkowa USD"],
-            ["total_volume", "REAL", "Wolumen 24h USD"],
+            ["snapshot_date", "DATE", "Date YYYY-MM-DD (UTC)"],
+            ["price_usd", "REAL", "Closing price USD"],
+            ["market_cap", "REAL", "Market capitalisation USD"],
+            ["total_volume", "REAL", "24h volume USD"],
         ],
         col_widths=[3.5, 2.5, 10.5],
     )
 
-    add_para(doc, "market_current — bieżące snapshoty (append-only)", bold=True, space_after=2)
+    add_para(doc, "market_current — current snapshots (append-only)", bold=True, space_after=2)
     add_para(doc,
-        "Przechowuje bogate dane live z /coins/markets. Każde pobranie dodaje nowe wiersze "
-        "z collected_at = UTC now — historia kolejnych pobrań."
+        "Stores rich live data from /coins/markets. Each fetch adds new rows "
+        "with collected_at = UTC now — a history of successive fetches."
     )
 
-    add_heading(doc, "5.4 Ograniczenia integralności", 2)
+    add_heading(doc, "5.4 Integrity constraints", 2)
     add_table(doc,
-        ["Ograniczenie", "Tabela", "Definicja"],
+        ["Constraint", "Table", "Definition"],
         [
-            ["PRIMARY KEY", "wszystkie", "id lub record_id"],
+            ["PRIMARY KEY", "all", "id or record_id"],
             ["FOREIGN KEY", "market_snapshots, market_current", "crypto_id → cryptocurrencies.id"],
             ["UNIQUE", "market_snapshots", "(crypto_id, snapshot_date)"],
             ["NOT NULL", "market_snapshots", "crypto_id, snapshot_date"],
@@ -520,37 +520,37 @@ CREATE INDEX IF NOT EXISTS idx_current_collected_at
         col_widths=[3.5, 5.0, 8.0],
     )
 
-    add_heading(doc, "5.5 Indeksy i normalizacja", 2)
-    add_bullet(doc, "PK autoindex na każdej tabeli — lookup po record_id / id.", "")
-    add_bullet(doc, "UNIQUE(crypto_id, snapshot_date) tworzy ukryty indeks złożony.", "")
-    add_bullet(doc, "idx_snapshots_date — filtrowanie po dacie.", "")
-    add_bullet(doc, "idx_current_collected_at — filtrowanie po czasie pobrania.", "")
+    add_heading(doc, "5.5 Indexes and normalisation", 2)
+    add_bullet(doc, "PK autoindex on each table — lookup by record_id / id.", "")
+    add_bullet(doc, "UNIQUE(crypto_id, snapshot_date) creates an implicit composite index.", "")
+    add_bullet(doc, "idx_snapshots_date — filtering by date.", "")
+    add_bullet(doc, "idx_current_collected_at — filtering by fetch time.", "")
     add_para(doc,
-        "Schemat spełnia 3NF: metadane monety tylko w cryptocurrencies, "
-        "tabele faktów zawierają wyłącznie crypto_id jako FK."
+        "The schema satisfies 3NF: coin metadata only in cryptocurrencies; "
+        "fact tables contain only crypto_id as FK."
     )
 
     doc.add_page_break()
 
-    # ══ 6. ARCHITEKTURA ═══════════════════════════════════════════════════════
-    add_heading(doc, "6. Architektura systemu", 1)
-    add_para(doc, "System oparty jest o trójwarstwową architekturę:")
+    # ══ 6. ARCHITECTURE ═══════════════════════════════════════════════════════
+    add_heading(doc, "6. System architecture", 1)
+    add_para(doc, "The system is based on a three-layer architecture:")
     add_diagram(doc, rendered.get("architecture"),
-                "Rys. 2. Architektura 3-warstwowa systemu", width_cm=14.0)
+                "Fig. 2. Three-layer system architecture", width_cm=14.0)
     add_diagram(doc, rendered.get("sequence"),
-                "Rys. 3. Diagram sekwencji — pobieranie danych historycznych", width_cm=14.0)
+                "Fig. 3. Sequence diagram — historical data retrieval", width_cm=14.0)
 
-    add_heading(doc, "6.1 Przepływ danych historycznych", 2)
+    add_heading(doc, "6.1 Historical data flow", 2)
     for s in [
-        "Użytkownik inicjuje pobieranie (notebook Stage 5 lub Streamlit Data Collection).",
-        "Dla każdej z 5 monet: GET /coins/{id}/market_chart?days=365.",
-        "Konwersja timestamp_ms → YYYY-MM-DD (UTC).",
-        "INSERT OR REPLACE do market_snapshots (executemany).",
-        "Opóźnienie 10 s między monetami (rate limit API).",
+        "User initiates fetch (notebook Stage 5 or Streamlit Data Collection).",
+        "For each of 5 coins: GET /coins/{id}/market_chart?days=365.",
+        "Convert timestamp_ms → YYYY-MM-DD (UTC).",
+        "INSERT OR REPLACE into market_snapshots (executemany).",
+        "10 s delay between coins (API rate limit).",
     ]:
         add_numbered(doc, s)
 
-    add_heading(doc, "6.2 Przepływ danych live", 2)
+    add_heading(doc, "6.2 Live data flow", 2)
     for s in [
         "GET /coins/markets?ids=bitcoin,ethereum,solana,binancecoin,ripple.",
         "INSERT do market_current z collected_at = UTC now.",
@@ -559,16 +559,16 @@ CREATE INDEX IF NOT EXISTS idx_current_collected_at
 
     doc.add_page_break()
 
-    # ══ 7. WARSTWA DANYCH ═════════════════════════════════════════════════════
-    add_heading(doc, "7. Implementacja — warstwa danych", 1)
+    # ══ 7. DATA LAYER ═════════════════════════════════════════════════════════
+    add_heading(doc, "7. Implementation — data layer", 1)
 
-    add_heading(doc, "7.1 Inicjalizacja bazy", 2)
+    add_heading(doc, "7.1 Database initialisation", 2)
     add_para(doc,
-        "Funkcja create_database() wywoływana przy starcie app.py i notebooka (Stage 3). "
-        "Operacja idempotentna dzięki CREATE TABLE IF NOT EXISTS."
+        "The create_database() function is called at app.py and notebook startup (Stage 3). "
+        "The operation is idempotent thanks to CREATE TABLE IF NOT EXISTS."
     )
 
-    add_heading(doc, "7.2 Idempotentny zapis", 2)
+    add_heading(doc, "7.2 Idempotent writes", 2)
     add_code(doc, """\
 conn.executemany(
     "INSERT OR REPLACE INTO market_snapshots "
@@ -578,7 +578,7 @@ conn.executemany(
 )
 conn.commit()""")
 
-    add_heading(doc, "7.3 Odczyt do DataFrame", 2)
+    add_heading(doc, "7.3 Read into DataFrame", 2)
     add_code(doc,
         "@st.cache_data(ttl=60)\n"
         "def load_snapshots() -> pd.DataFrame:\n"
@@ -593,141 +593,141 @@ conn.commit()""")
 
     doc.add_page_break()
 
-    # ══ 8. WARSTWA PREZENTACJI ════════════════════════════════════════════════
-    add_heading(doc, "8. Implementacja — warstwa prezentacji", 1)
+    # ══ 8. PRESENTATION LAYER ═════════════════════════════════════════════════
+    add_heading(doc, "8. Implementation — presentation layer", 1)
 
-    add_heading(doc, "8.1 Notebook Jupyter — 11 etapów", 2)
+    add_heading(doc, "8.1 Jupyter notebook — 11 stages", 2)
     add_table(doc,
-        ["Etap", "Opis"],
+        ["Stage", "Description"],
         [
-            ["1–2", "Środowisko uv, importy, stałe COINS / METRIC_MAP"],
-            ["3–4", "DDL bazy, wstawienie listy monet"],
-            ["5", "Pobieranie 365-dniowej historii + zapis do DB (~1826 wierszy)"],
-            ["6–7", "Weryfikacja DB, wczytanie do pandas DataFrame"],
-            ["8", "Szeregi czasowe — ipywidgets + Plotly"],
-            ["9", "Analiza ilościowa — bar/box/violin"],
-            ["10", "Dashboard rynkowy — KPI, heatmapa, treemap"],
-            ["11", "Korelacja i zmienność — corr(), annualised volatility"],
+            ["1–2", "uv environment, imports, COINS / METRIC_MAP constants"],
+            ["3–4", "DB DDL, coin list insertion"],
+            ["5", "365-day history fetch + DB write (~1826 rows)"],
+            ["6–7", "DB verification, load into pandas DataFrame"],
+            ["8", "Time series — ipywidgets + Plotly"],
+            ["9", "Quantitative analysis — bar/box/violin"],
+            ["10", "Market dashboard — KPI, heatmap, treemap"],
+            ["11", "Correlation & volatility — corr(), annualised volatility"],
         ],
         col_widths=[2.0, 15.5],
     )
 
-    add_heading(doc, "8.2 Streamlit — 6 stron", 2)
+    add_heading(doc, "8.2 Streamlit — 6 pages", 2)
     add_table(doc,
-        ["Strona", "Opis"],
+        ["Page", "Description"],
         [
-            ["Overview", "Statystyki bazy, zakres dat, nawigacja"],
-            ["Data Collection", "Pobieranie historyczne i live z CoinGecko"],
-            ["Time Series", "Wykres liniowy — 6 filtrów sidebar"],
-            ["Quantitative Analysis", "Bar / Box / Violin — 6 filtrów"],
-            ["Market Dashboard", "KPI, tabela, grouped bar, heatmap, treemap"],
-            ["Correlation & Volatility", "Macierz korelacji, zmienność, korelacja z BTC"],
+            ["Overview", "DB statistics, date range, navigation"],
+            ["Data Collection", "Historical and live fetch from CoinGecko"],
+            ["Time Series", "Line chart — 6 sidebar filters"],
+            ["Quantitative Analysis", "Bar / Box / Violin — 6 filters"],
+            ["Market Dashboard", "KPI, table, grouped bar, heatmap, treemap"],
+            ["Correlation & Volatility", "Correlation matrix, volatility, BTC correlation"],
         ],
         col_widths=[5.0, 12.5],
     )
 
     doc.add_page_break()
 
-    # ══ 9. ANALIZY ════════════════════════════════════════════════════════════
-    add_heading(doc, "9. Opis analiz i wizualizacji", 1)
+    # ══ 9. ANALYSES ═══════════════════════════════════════════════════════════
+    add_heading(doc, "9. Analyses and visualisations", 1)
 
-    add_heading(doc, "9.1 Szeregi czasowe", 2)
+    add_heading(doc, "9.1 Time series", 2)
     add_para(doc,
-        "Wykres liniowy z opcjonalną średnią kroczącą (MA) i skalą logarytmiczną. "
-        "Umożliwia porównanie monet o różnych cenach (BTC ~$90k vs XRP ~$2)."
+        "Line chart with optional moving average (MA) and logarithmic scale. "
+        "Enables comparison of coins at different price levels (BTC ~$90k vs XRP ~$2)."
     )
 
-    add_heading(doc, "9.2 Analiza ilościowa", 2)
+    add_heading(doc, "9.2 Quantitative analysis", 2)
     add_para(doc,
-        "Bar chart — porównanie agregacji. Box plot — mediana, kwartyle, outliers. "
-        "Violin plot — dodatkowo gęstość rozkładu."
+        "Bar chart — aggregation comparison. Box plot — median, quartiles, outliers. "
+        "Violin plot — additionally estimated distribution density."
     )
 
-    add_heading(doc, "9.3 Korelacja i zmienność", 2)
+    add_heading(doc, "9.3 Correlation and volatility", 2)
     add_code(doc, """\
 returns = price_pivot.pct_change().dropna()
-corr    = returns.corr()           # macierz Pearsona
-vol     = returns.std() * (365**0.5) * 100   # zmienność roczna %""")
+corr    = returns.corr()           # Pearson matrix
+vol     = returns.std() * (365**0.5) * 100   # annualised volatility %""")
 
     doc.add_page_break()
 
-    # ══ 10. DANE ════════════════════════════════════════════════════════════════
-    add_heading(doc, "10. Dane zebrane w projekcie", 1)
+    # ══ 10. DATA ══════════════════════════════════════════════════════════════
+    add_heading(doc, "10. Data collected in the project", 1)
     add_table(doc,
-        ["Tabela", "Wiersze", "Opis"],
+        ["Table", "Rows", "Description"],
         [
             ["cryptocurrencies", "5", "BTC, ETH, SOL, BNB, XRP"],
-            ["market_snapshots", "1 826", "366 dni × 5 monet (2025-05-26 → 2026-05-26)"],
-            ["market_current", "10", "2 pobrania live × 5 monet"],
+            ["market_snapshots", "1,826", "366 days × 5 coins (2025-05-26 → 2026-05-26)"],
+            ["market_current", "10", "2 live fetches × 5 coins"],
         ],
         col_widths=[5.0, 2.5, 10.0],
     )
 
-    # ══ 11. URUCHOMIENIE ════════════════════════════════════════════════════════
-    add_heading(doc, "11. Instrukcja uruchomienia", 1)
+    # ══ 11. RUNNING ═══════════════════════════════════════════════════════════
+    add_heading(doc, "11. Running instructions", 1)
     add_code(doc, """\
-# Instalacja
+# Installation
 uv sync
 
-# Aplikacja webowa (zalecane)
+# Web application (recommended)
 uv run streamlit run app.py
 # → http://localhost:8501
 
 # Notebook
 uv run jupyter lab crypto_market_analysis.ipynb""")
     add_para(doc,
-        "Przy pierwszym uruchomieniu przejdź do Data Collection i pobierz dane historyczne."
+        "On first run, go to Data Collection and fetch historical data."
     )
 
     doc.add_page_break()
 
-    # ══ 12. PROBLEMY ══════════════════════════════════════════════════════════
-    add_heading(doc, "12. Napotkane problemy i rozwiązania", 1)
+    # ══ 12. ISSUES ════════════════════════════════════════════════════════════
+    add_heading(doc, "12. Issues encountered and solutions", 1)
     add_table(doc,
-        ["Problem", "Przyczyna", "Rozwiązanie"],
+        ["Issue", "Cause", "Solution"],
         [
-            ["ModuleNotFoundError", "Wymagany Python 3.14", "Zmiana na requires-python >= 3.13"],
-            ["HTTP 429", "Rate limit CoinGecko", "REQUEST_DELAY = 10 s + retry"],
-            ["Pusty dashboard", "market_current pusta", "Obliczenia z market_snapshots"],
-            ["applymap deprecated", "pandas 2.1+", "Zamiana na .map()"],
+            ["ModuleNotFoundError", "Required Python 3.14", "Changed to requires-python >= 3.13"],
+            ["HTTP 429", "CoinGecko rate limit", "REQUEST_DELAY = 10 s + retry"],
+            ["Empty dashboard", "market_current empty", "Computed from market_snapshots"],
+            ["applymap deprecated", "pandas 2.1+", "Replaced with .map()"],
         ],
         col_widths=[4.5, 5.5, 7.5],
     )
 
     doc.add_page_break()
 
-    # ══ 13. WNIOSKI ═════════════════════════════════════════════════════════════
-    add_heading(doc, "13. Wnioski", 1)
+    # ══ 13. CONCLUSIONS ═══════════════════════════════════════════════════════
+    add_heading(doc, "13. Conclusions", 1)
 
-    add_heading(doc, "13.1 Osiągnięcia", 2)
+    add_heading(doc, "13.1 Achievements", 2)
     for title, desc in [
-        ("System end-to-end", "API → SQLite → wizualizacje w Jupyter i Streamlit."),
-        ("Poprawny schemat DB", "3NF, FK, UNIQUE, indeksy zoptymalizowane pod zapytania czasowe."),
-        ("Idempotentny ETL", "INSERT OR REPLACE — bezpieczne ponowne pobieranie."),
-        ("Reprodukowalność", "uv + uv.lock — identyczne środowisko na każdej maszynie."),
+        ("End-to-end system", "API → SQLite → visualisations in Jupyter and Streamlit."),
+        ("Correct DB schema", "3NF, FK, UNIQUE, indexes optimised for time-series queries."),
+        ("Idempotent ETL", "INSERT OR REPLACE — safe re-fetching."),
+        ("Reproducibility", "uv + uv.lock — identical environment on every machine."),
     ]:
         add_bullet(doc, desc, title + ":")
 
-    add_heading(doc, "13.2 Możliwe rozszerzenia", 2)
+    add_heading(doc, "13.2 Possible extensions", 2)
     for e in [
-        "Więcej monet — rozszerzenie listy COINS.",
-        "Harmonogram — APScheduler / cron.",
-        "PostgreSQL — dla większej skali i współbieżności.",
-        "Eksport CSV/Excel — st.download_button w Streamlit.",
+        "More coins — extend the COINS list.",
+        "Scheduling — APScheduler / cron.",
+        "PostgreSQL — for larger scale and concurrency.",
+        "CSV/Excel export — st.download_button in Streamlit.",
     ]:
         add_bullet(doc, e)
 
-    add_heading(doc, "13.3 Uwagi końcowe", 2)
+    add_heading(doc, "13.3 Final remarks", 2)
     add_para(doc,
-        "SQLite w pełni wystarcza do lokalnych analiz — 1826 wierszy obsługiwanych "
-        "poniżej 50 ms dzięki prawidłowo zaprojektowanym indeksom, w tym wykorzystaniu "
-        "UNIQUE jako indeksu złożonego na (crypto_id, snapshot_date)."
+        "SQLite is fully adequate for local analytical applications — 1,826 rows handled "
+        "in under 50 ms thanks to properly designed indexes, including using "
+        "UNIQUE as a composite index on (crypto_id, snapshot_date)."
     )
 
     doc.add_page_break()
 
-    # ══ 14. LITERATURA ════════════════════════════════════════════════════════
-    add_heading(doc, "14. Literatura i źródła", 1)
+    # ══ 14. REFERENCES ════════════════════════════════════════════════════════
+    add_heading(doc, "14. References", 1)
     for i, item in enumerate([
         "CoinGecko API Documentation — https://www.coingecko.com/en/api/documentation",
         "SQLite Documentation — https://www.sqlite.org/docs.html",
@@ -752,15 +752,15 @@ uv run jupyter lab crypto_market_analysis.ipynb""")
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     r = p.add_run(
-        "Sprawozdanie przygotowane w ramach przedmiotu Zaawansowane Bazy Danych\n"
-        "Michał Dusza · Szymon Bugajski · Mateusz Basiura · Maj 2026"
+        "Report prepared for the Advanced Databases course\n"
+        "Michał Dusza · Szymon Bugajski · Mateusz Basiura · May 2026"
     )
     r.font.size = Pt(9)
     r.italic = True
     r.font.color.rgb = RGBColor(0x88, 0x88, 0x88)
 
     doc.save(OUTPUT)
-    print(f"\nZapisano: {OUTPUT}")
+    print(f"\nSaved: {OUTPUT}")
 
     for p in TMP_DIR.glob("*.png"):
         p.unlink()

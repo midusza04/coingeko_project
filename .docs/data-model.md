@@ -1,45 +1,45 @@
-# Model danych
+# Data Model
 
-> Pełny opis akademicki: [`SPRAWOZDANIE.md` §4](../SPRAWOZDANIE.md)  
-> DDL i zapytania SQL (EN): [`DOCUMENTATION.md` §2–3](../DOCUMENTATION.md)
-
----
-
-## Przegląd
-
-Baza `crypto_market.db` (SQLite 3) składa się z **3 tabel** w modelu gwiazdy:
-
-- **`cryptocurrencies`** — wymiar (dimension): słownik śledzonych monet
-- **`market_snapshots`** — fakt historyczny: dzienne wartości ceny, kapitalizacji, wolumenu
-- **`market_current`** — fakt bieżący: bogaty snapshot live z API `/coins/markets`
-
-Schemat spełnia **3NF** (Trzecią Postać Normalną).
+> Full academic description: [`SPRAWOZDANIE.md` §4](../SPRAWOZDANIE.md)  
+> DDL and SQL queries: [`DOCUMENTATION.md` §2–3](../DOCUMENTATION.md)
 
 ---
 
-## Diagram ERD
+## Overview
+
+The `crypto_market.db` database (SQLite 3) consists of **3 tables** in a star schema:
+
+- **`cryptocurrencies`** — dimension: lookup table of tracked coins
+- **`market_snapshots`** — historical fact: daily price, market cap, volume
+- **`market_current`** — live fact: rich snapshot from `/coins/markets` API
+
+The schema satisfies **Third Normal Form (3NF)**.
+
+---
+
+## ERD Diagram
 
 ```mermaid
 erDiagram
     cryptocurrencies {
-        TEXT id PK "np. bitcoin"
-        TEXT symbol NOT_NULL "np. BTC"
-        TEXT name NOT_NULL "np. Bitcoin"
+        TEXT id PK "e.g. bitcoin"
+        TEXT symbol NOT_NULL "e.g. BTC"
+        TEXT name NOT_NULL "e.g. Bitcoin"
     }
 
     market_snapshots {
         INTEGER record_id PK "AUTOINCREMENT"
         TEXT crypto_id FK "→ cryptocurrencies.id"
-        DATE snapshot_date NOT_NULL "RRRR-MM-DD"
-        REAL price_usd "cena zamknięcia USD"
-        REAL market_cap "kapitalizacja USD"
-        REAL total_volume "wolumen 24h USD"
+        DATE snapshot_date NOT_NULL "YYYY-MM-DD"
+        REAL price_usd "closing price USD"
+        REAL market_cap "market cap USD"
+        REAL total_volume "24h volume USD"
     }
 
     market_current {
         INTEGER record_id PK "AUTOINCREMENT"
         TEXT crypto_id FK "→ cryptocurrencies.id"
-        DATETIME collected_at NOT_NULL "czas pobrania UTC"
+        DATETIME collected_at NOT_NULL "fetch time UTC"
         REAL price_usd
         REAL market_cap
         REAL total_volume
@@ -56,13 +56,13 @@ erDiagram
         REAL ath_change_percentage
     }
 
-    cryptocurrencies ||--o{ market_snapshots : "ma snapshoty"
-    cryptocurrencies ||--o{ market_current : "ma snapshoty live"
+    cryptocurrencies ||--o{ market_snapshots : "has snapshots"
+    cryptocurrencies ||--o{ market_current : "has live snapshots"
 ```
 
 ---
 
-## DDL — definicje tabel
+## DDL — Table Definitions
 
 ```sql
 CREATE TABLE IF NOT EXISTS cryptocurrencies (
@@ -112,97 +112,97 @@ CREATE INDEX IF NOT EXISTS idx_current_collected_at
 
 ---
 
-## Opis tabel
+## Table Descriptions
 
-### `cryptocurrencies` — słownik monet
+### `cryptocurrencies` — coin lookup
 
-| Kolumna | Typ | Ograniczenia | Opis |
-|---------|-----|-------------|------|
-| `id` | TEXT | PRIMARY KEY | Identyfikator CoinGecko, np. `bitcoin` |
-| `symbol` | TEXT | NOT NULL | Ticker, np. `BTC` |
-| `name` | TEXT | NOT NULL | Pełna nazwa, np. `Bitcoin` |
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PRIMARY KEY | CoinGecko ID, e.g. `bitcoin` |
+| `symbol` | TEXT | NOT NULL | Ticker, e.g. `BTC` |
+| `name` | TEXT | NOT NULL | Full name, e.g. `Bitcoin` |
 
-**Dane:** 5 wierszy (BTC, ETH, SOL, BNB, XRP). Wstawiane przez `INSERT OR IGNORE` w `create_database()`.
+**Data:** 5 rows (BTC, ETH, SOL, BNB, XRP). Inserted via `INSERT OR IGNORE` in `create_database()`.
 
-### `market_snapshots` — historia dzienna
+### `market_snapshots` — daily history
 
-| Kolumna | Typ | Ograniczenia | Opis |
-|---------|-----|-------------|------|
-| `record_id` | INTEGER | PK, AUTOINCREMENT | Klucz surogatowy |
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `record_id` | INTEGER | PK, AUTOINCREMENT | Surrogate key |
 | `crypto_id` | TEXT | NOT NULL, FK | → `cryptocurrencies.id` |
-| `snapshot_date` | DATE | NOT NULL | Data `YYYY-MM-DD` (UTC) |
-| `price_usd` | REAL | — | Cena zamknięcia w USD |
-| `market_cap` | REAL | — | Kapitalizacja rynkowa w USD |
-| `total_volume` | REAL | — | Wolumen obrotu 24h w USD |
+| `snapshot_date` | DATE | NOT NULL | Date `YYYY-MM-DD` (UTC) |
+| `price_usd` | REAL | — | Closing price in USD |
+| `market_cap` | REAL | — | Market capitalisation in USD |
+| `total_volume` | REAL | — | 24h trading volume in USD |
 
-**Źródło:** `GET /coins/{id}/market_chart?days=365&interval=daily`  
-**Zapis:** `INSERT OR REPLACE` — idempotentny, ~366 wierszy na monetę  
-**Objętość:** ~1 826 wierszy (366 dni × 5 monet)
+**Source:** `GET /coins/{id}/market_chart?days=365&interval=daily`  
+**Write:** `INSERT OR REPLACE` — idempotent, ~366 rows per coin  
+**Volume:** ~1,826 rows (366 days × 5 coins)
 
-### `market_current` — bieżące snapshoty
+### `market_current` — live snapshots
 
-| Kolumna | Typ | Opis |
-|---------|-----|------|
-| `record_id` | INTEGER PK | Klucz surogatowy |
+| Column | Type | Description |
+|--------|------|-------------|
+| `record_id` | INTEGER PK | Surrogate key |
 | `crypto_id` | TEXT FK | → `cryptocurrencies.id` |
-| `collected_at` | DATETIME | Czas pobrania (UTC) |
-| `price_usd` | REAL | Bieżąca cena |
-| `market_cap` | REAL | Kapitalizacja |
-| `total_volume` | REAL | Wolumen 24h |
-| `high_24h` / `low_24h` | REAL | Min/max cena 24h |
-| `price_change_24h` | REAL | Zmiana ceny 24h (USD) |
-| `price_change_percentage_24h` | REAL | Zmiana ceny 24h (%) |
-| `price_change_percentage_7d` | REAL | Zmiana ceny 7d (%) |
-| `market_cap_rank` | INTEGER | Ranking globalny |
-| `circulating_supply` | REAL | Podaż w obiegu |
-| `total_supply` / `max_supply` | REAL | Podaż całkowita / maksymalna |
+| `collected_at` | DATETIME | Fetch timestamp (UTC) |
+| `price_usd` | REAL | Current price |
+| `market_cap` | REAL | Market cap |
+| `total_volume` | REAL | 24h volume |
+| `high_24h` / `low_24h` | REAL | 24h min/max price |
+| `price_change_24h` | REAL | 24h price change (USD) |
+| `price_change_percentage_24h` | REAL | 24h price change (%) |
+| `price_change_percentage_7d` | REAL | 7d price change (%) |
+| `market_cap_rank` | INTEGER | Global rank |
+| `circulating_supply` | REAL | Circulating supply |
+| `total_supply` / `max_supply` | REAL | Total / max supply |
 | `ath` | REAL | All-time high (USD) |
-| `ath_change_percentage` | REAL | Odległość od ATH (%) |
+| `ath_change_percentage` | REAL | Distance from ATH (%) |
 
-**Źródło:** `GET /coins/markets?ids=…`  
-**Zapis:** `INSERT` (append-only — każde pobranie dodaje nowe wiersze)
-
----
-
-## Ograniczenia integralności
-
-| Ograniczenie | Tabela | Definicja | Cel |
-|-------------|--------|-----------|-----|
-| PRIMARY KEY | wszystkie | `id` lub `record_id` | Jednoznaczna identyfikacja |
-| FOREIGN KEY | `market_snapshots`, `market_current` | `crypto_id → cryptocurrencies.id` | Brak rekordów osieroconych |
-| UNIQUE | `market_snapshots` | `(crypto_id, snapshot_date)` | Jeden rekord na monetę na dzień |
-| NOT NULL | `market_snapshots` | `crypto_id`, `snapshot_date` | Klucz naturalny zawsze podany |
-| NOT NULL | `market_current` | `crypto_id`, `collected_at` | Identyfikacja snapshotu |
+**Source:** `GET /coins/markets?ids=…`  
+**Write:** `INSERT` (append-only — each fetch adds new rows)
 
 ---
 
-## Indeksy
+## Integrity Constraints
 
-| Indeks | Tabela | Kolumny | Cel |
-|--------|--------|---------|-----|
-| PK autoindex | wszystkie | `record_id` / `id` | Lookup po kluczu głównym |
-| `sqlite_autoindex_…` | `market_snapshots` | `(crypto_id, snapshot_date)` | Filtr po monecie + zakres dat (z UNIQUE) |
-| `idx_snapshots_date` | `market_snapshots` | `snapshot_date` | Filtr po samej dacie |
-| `idx_current_collected_at` | `market_current` | `collected_at` | Filtr po czasie pobrania |
+| Constraint | Table | Definition | Purpose |
+|------------|-------|------------|---------|
+| PRIMARY KEY | all | `id` or `record_id` | Unique row identification |
+| FOREIGN KEY | `market_snapshots`, `market_current` | `crypto_id → cryptocurrencies.id` | No orphan records |
+| UNIQUE | `market_snapshots` | `(crypto_id, snapshot_date)` | One record per coin per day |
+| NOT NULL | `market_snapshots` | `crypto_id`, `snapshot_date` | Natural key always present |
+| NOT NULL | `market_current` | `crypto_id`, `collected_at` | Snapshot identification |
 
 ---
 
-## Mapowanie API → baza danych
+## Indexes
 
-### Endpoint historyczny: `/coins/{id}/market_chart`
+| Index | Table | Columns | Purpose |
+|-------|-------|---------|---------|
+| PK autoindex | all | `record_id` / `id` | Primary key lookup |
+| `sqlite_autoindex_…` | `market_snapshots` | `(crypto_id, snapshot_date)` | Coin + date range filter (from UNIQUE) |
+| `idx_snapshots_date` | `market_snapshots` | `snapshot_date` | Date-only filter |
+| `idx_current_collected_at` | `market_current` | `collected_at` | Fetch time filter |
 
-| Pole API | Tabela | Kolumna DB | Transformacja |
-|----------|--------|------------|---------------|
+---
+
+## API → Database Mapping
+
+### Historical endpoint: `/coins/{id}/market_chart`
+
+| API Field | Table | DB Column | Transformation |
+|-----------|-------|-----------|----------------|
 | `prices[i][0]` | `market_snapshots` | `snapshot_date` | `ts_ms / 1000` → `YYYY-MM-DD` UTC |
-| `prices[i][1]` | `market_snapshots` | `price_usd` | bezpośrednio |
-| `market_caps[i][1]` | `market_snapshots` | `market_cap` | bezpośrednio |
-| `total_volumes[i][1]` | `market_snapshots` | `total_volume` | bezpośrednio |
-| (parametr URL) | `market_snapshots` | `crypto_id` | `coin_id` z zapytania |
+| `prices[i][1]` | `market_snapshots` | `price_usd` | direct |
+| `market_caps[i][1]` | `market_snapshots` | `market_cap` | direct |
+| `total_volumes[i][1]` | `market_snapshots` | `total_volume` | direct |
+| (URL param) | `market_snapshots` | `crypto_id` | `coin_id` from request |
 
-### Endpoint live: `/coins/markets`
+### Live endpoint: `/coins/markets`
 
-| Pole API | Tabela | Kolumna DB |
-|----------|--------|------------|
+| API Field | Table | DB Column |
+|-----------|-------|-----------|
 | `id` | `market_current` | `crypto_id` |
 | `current_price` | `market_current` | `price_usd` |
 | `market_cap` | `market_current` | `market_cap` |
@@ -218,38 +218,38 @@ CREATE INDEX IF NOT EXISTS idx_current_collected_at
 | `max_supply` | `market_current` | `max_supply` |
 | `ath` | `market_current` | `ath` |
 | `ath_change_percentage` | `market_current` | `ath_change_percentage` |
-| (generowane) | `market_current` | `collected_at` | `datetime.utcnow()` |
+| (generated) | `market_current` | `collected_at` | `datetime.utcnow()` |
 
-### Słownik monet
+### Coin lookup
 
-| Pole API (`/coins/markets`) | Tabela | Kolumna DB |
-|-----------------------------|--------|------------|
+| API Field (`/coins/markets`) | Table | DB Column |
+|------------------------------|-------|-----------|
 | `id` | `cryptocurrencies` | `id` |
 | `symbol` | `cryptocurrencies` | `symbol` (uppercase) |
 | `name` | `cryptocurrencies` | `name` |
 
 ---
 
-## Normalizacja (3NF)
+## Normalisation (3NF)
 
-| Tabela | 1NF | 2NF | 3NF | Uwagi |
-|--------|:---:|:---:|:---:|-------|
-| `cryptocurrencies` | ✅ | ✅ | ✅ | Prosta tabela słownikowa |
-| `market_snapshots` | ✅ | ✅ | ✅ | Tabela faktów; brak kolumn pochodnych |
-| `market_current` | ✅ | ✅ | ✅ | Wartości surowe z API, nie pochodne z innych kolumn |
+| Table | 1NF | 2NF | 3NF | Notes |
+|-------|:---:|:---:|:---:|-------|
+| `cryptocurrencies` | ✅ | ✅ | ✅ | Simple lookup table |
+| `market_snapshots` | ✅ | ✅ | ✅ | Fact table; no derived columns |
+| `market_current` | ✅ | ✅ | ✅ | Raw API values, not derived from other columns |
 
-Metadane monety (`symbol`, `name`) przechowywane wyłącznie w `cryptocurrencies` — tabele faktów zawierają tylko klucz obcy `crypto_id`.
+Coin metadata (`symbol`, `name`) stored only in `cryptocurrencies` — fact tables contain only the `crypto_id` foreign key.
 
 ---
 
-## Objętość danych (stan projektu)
+## Data Volume (project state)
 
-| Tabela | Wiersze | Opis |
-|--------|---------|------|
+| Table | Rows | Description |
+|-------|------|-------------|
 | `cryptocurrencies` | 5 | BTC, ETH, SOL, BNB, XRP |
-| `market_snapshots` | ~1 826 | 366 dni × 5 monet |
-| `market_current` | ~10 | 2 pobrania × 5 monet |
+| `market_snapshots` | ~1,826 | 366 days × 5 coins |
+| `market_current` | ~10 | 2 fetches × 5 coins |
 
 ---
 
-*Architektura: [`architecture.md`](architecture.md) · Diagramy: [`diagrams.md`](diagrams.md)*
+*Architecture: [`architecture.md`](architecture.md) · Diagrams: [`diagrams.md`](diagrams.md)*

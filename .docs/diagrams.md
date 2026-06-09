@@ -1,33 +1,33 @@
-# Diagramy
+# Diagrams
 
-> Wszystkie diagramy w formacie [Mermaid](https://mermaid.js.org/) — renderują się na GitHub, GitLab i w edytorach z obsługą Mermaid.
+> All diagrams in [Mermaid](https://mermaid.js.org/) format — render natively on GitHub, GitLab, and Mermaid-capable editors.
 
-Pełny opis architektury: [`architecture.md`](architecture.md) · Schemat DB: [`data-model.md`](data-model.md)
+Architecture details: [`architecture.md`](architecture.md) · DB schema: [`data-model.md`](data-model.md)
 
 ---
 
-## 1. Architektura systemu (3 warstwy)
+## 1. System Architecture (3 Layers)
 
 ```mermaid
 flowchart TD
-    subgraph EXTERNAL ["Źródło zewnętrzne"]
-        API["🌐 CoinGecko REST API v3\n(publiczne, bez klucza)"]
+    subgraph EXTERNAL ["External Source"]
+        API["🌐 CoinGecko REST API v3\n(public, no API key)"]
     end
 
-    subgraph COLLECT ["Warstwa pozyskiwania danych"]
+    subgraph COLLECT ["Data Acquisition Layer"]
         F1["fetch_market_chart()\n/coins/{id}/market_chart"]
         F2["fetch_markets_current()\n/coins/markets"]
         S1["store_market_chart()"]
         S2["store_current()"]
     end
 
-    subgraph STORAGE ["Warstwa przechowywania"]
+    subgraph STORAGE ["Storage Layer"]
         DB[("🗄️ SQLite 3\ncrypto_market.db")]
     end
 
-    subgraph PRESENT ["Warstwa prezentacji"]
-        NB["📓 crypto_market_analysis.ipynb\n11 etapów · ipywidgets"]
-        APP["🌐 app.py — Streamlit\n6 stron · Plotly"]
+    subgraph PRESENT ["Presentation Layer"]
+        NB["📓 crypto_market_analysis.ipynb\n11 stages · ipywidgets"]
+        APP["🌐 app.py — Streamlit\n6 pages · Plotly"]
     end
 
     API -->|HTTP GET| F1
@@ -42,23 +42,23 @@ flowchart TD
 
 ---
 
-## 2. Diagram ERD — zaimplementowany schemat SQLite
+## 2. ERD — Implemented SQLite Schema
 
 ```mermaid
 erDiagram
     cryptocurrencies {
-        TEXT id PK "np. bitcoin"
-        TEXT symbol NOT_NULL "np. BTC"
-        TEXT name NOT_NULL "np. Bitcoin"
+        TEXT id PK "e.g. bitcoin"
+        TEXT symbol NOT_NULL "e.g. BTC"
+        TEXT name NOT_NULL "e.g. Bitcoin"
     }
 
     market_snapshots {
         INTEGER record_id PK "AUTOINCREMENT"
         TEXT crypto_id FK "→ cryptocurrencies.id"
-        DATE snapshot_date NOT_NULL "RRRR-MM-DD"
-        REAL price_usd "cena zamknięcia USD"
-        REAL market_cap "kapitalizacja USD"
-        REAL total_volume "wolumen 24h USD"
+        DATE snapshot_date NOT_NULL "YYYY-MM-DD"
+        REAL price_usd "closing price USD"
+        REAL market_cap "market cap USD"
+        REAL total_volume "24h volume USD"
     }
 
     market_current {
@@ -81,13 +81,13 @@ erDiagram
         REAL ath_change_percentage
     }
 
-    cryptocurrencies ||--o{ market_snapshots : "ma snapshoty dzienne"
-    cryptocurrencies ||--o{ market_current : "ma snapshoty live"
+    cryptocurrencies ||--o{ market_snapshots : "has daily snapshots"
+    cryptocurrencies ||--o{ market_current : "has live snapshots"
 ```
 
 ---
 
-## 3. Diagram sekwencji — pobieranie danych historycznych
+## 3. Sequence Diagram — Historical Data Fetch
 
 ```mermaid
 sequenceDiagram
@@ -98,32 +98,32 @@ sequenceDiagram
     participant API as CoinGecko API
     participant DB as SQLite
 
-    User->>UI: Klik "Fetch Historical Data"
-    UI->>App: Inicjacja pobierania
+    User->>UI: Click "Fetch Historical Data"
+    UI->>App: Initiate fetch
 
-    loop Dla każdej z 5 monet
+    loop For each of 5 coins
         App->>API: GET /coins/{id}/market_chart?days=365
         alt HTTP 200
             API-->>App: JSON {prices, market_caps, total_volumes}
-            App->>App: Konwersja ts_ms → YYYY-MM-DD
-            App->>DB: INSERT OR REPLACE market_snapshots (~366 wierszy)
+            App->>App: Convert ts_ms → YYYY-MM-DD
+            App->>DB: INSERT OR REPLACE market_snapshots (~366 rows)
             DB-->>App: OK
             App->>App: sleep(10s) — rate limit
         else HTTP 429
             API-->>App: 429 Too Many Requests
-            App-->>UI: Komunikat błędu
-        else Timeout / błąd sieci
-            App-->>UI: Wyjątek + komunikat
+            App-->>UI: Error message
+        else Timeout / network error
+            App-->>UI: Exception + message
         end
     end
 
     App-->>UI: "All historical data stored!"
-    UI-->>User: Podsumowanie (liczba wierszy)
+    UI-->>User: Summary (row count)
 ```
 
 ---
 
-## 4. Diagram sekwencji — pobieranie live + wizualizacja
+## 4. Sequence Diagram — Live Fetch + Visualization
 
 ```mermaid
 sequenceDiagram
@@ -134,26 +134,26 @@ sequenceDiagram
     participant API as CoinGecko API
     participant DB as SQLite
 
-    Note over User,DB: Pobieranie bieżącego snapshotu
-    User->>UI: Klik "Fetch Live Snapshot"
+    Note over User,DB: Live snapshot fetch
+    User->>UI: Click "Fetch Live Snapshot"
     App->>API: GET /coins/markets?ids=bitcoin,ethereum,...
-    API-->>App: JSON lista 5 obiektów
-    App->>DB: INSERT INTO market_current (5 wierszy)
+    API-->>App: JSON list of 5 objects
+    App->>DB: INSERT INTO market_current (5 rows)
     App-->>UI: "Stored live snapshot for 5 coins"
 
-    Note over User,DB: Wizualizacja
-    User->>UI: Nawigacja → Time Series
+    Note over User,DB: Visualization
+    User->>UI: Navigate → Time Series
     UI->>App: load_snapshots()
     App->>DB: SELECT … JOIN cryptocurrencies
     DB-->>App: ResultSet
-    App->>App: pandas DataFrame + filtrowanie
+    App->>App: pandas DataFrame + filtering
     App-->>UI: Plotly chart
-    UI-->>User: Interaktywny wykres
+    UI-->>User: Interactive chart
 ```
 
 ---
 
-## 5. Diagram przepływu — ETL historyczny
+## 5. Flow Diagram — Historical ETL
 
 ```mermaid
 flowchart LR
@@ -164,8 +164,8 @@ flowchart LR
     end
 
     subgraph T["Transform"]
-        T1["Dla każdej pary [ts_ms, value]:\nts_ms / 1000 → datetime UTC\n→ strftime('%Y-%m-%d')"]
-        T2["Zbuduj listę tupli:\n(crypto_id, date, price, mcap, volume)"]
+        T1["For each [ts_ms, value] pair:\nts_ms / 1000 → UTC datetime\n→ strftime('%Y-%m-%d')"]
+        T2["Build tuple list:\n(crypto_id, date, price, mcap, volume)"]
         E2 --> T1 --> T2
     end
 
@@ -178,7 +178,7 @@ flowchart LR
 
 ---
 
-## 6. Diagram przepływu — logika `create_database()`
+## 6. Flow Diagram — `create_database()` Logic
 
 ```mermaid
 flowchart TD
@@ -188,19 +188,19 @@ flowchart TD
     T2 --> I1[CREATE INDEX IF NOT EXISTS idx_snapshots_date]
     I1 --> T3[CREATE TABLE IF NOT EXISTS market_current\n+ FK]
     T3 --> I2[CREATE INDEX IF NOT EXISTS idx_current_collected_at]
-    I2 --> SEED[INSERT OR IGNORE cryptocurrencies\n× 5 monet]
+    I2 --> SEED[INSERT OR IGNORE cryptocurrencies\n× 5 coins]
     SEED --> COMMIT[conn.commit + close]
-    COMMIT --> END([✓ Baza gotowa])
+    COMMIT --> END([✓ Database ready])
 ```
 
 ---
 
-## 7. Diagram komponentów — moduły i zależności
+## 7. Component Diagram — Modules and Dependencies
 
 ```mermaid
 classDiagram
     class app_py {
-        <<module — główny>>
+        <<module — main>>
         +create_database() None
         +load_snapshots() DataFrame
         +load_db_stats() dict
@@ -219,8 +219,8 @@ classDiagram
 
     class notebook {
         <<crypto_market_analysis.ipynb>>
-        +11 etapów analitycznych
-        +te same funkcje DB/API
+        +11 analytical stages
+        +same DB/API functions
     }
 
     class main_py {
@@ -267,20 +267,20 @@ classDiagram
 
 ---
 
-## 8. Diagram przepływu — legacy `main.py`
+## 8. Flow Diagram — Legacy `main.py`
 
-> Moduł legacy — zastąpiony przez `app.py`. Zachowany jako referencja początkowego etapu.
+> Legacy module — replaced by `app.py`. Kept as reference for the early project stage.
 
 ```mermaid
 flowchart TD
-    START([▶ python main.py]) --> GET[requests.get /coins/markets\n3 monety: BTC, ETH, SOL]
+    START([▶ python main.py]) --> GET[requests.get /coins/markets\n3 coins: BTC, ETH, SOL]
     GET -->|2xx| PARSE[response.json → list]
-    GET -->|błąd| ERR([✗ HTTPError / Timeout])
+    GET -->|error| ERR([✗ HTTPError / Timeout])
     PARSE --> WRITE[Path.write_text\ncoingecko_response.json]
-    WRITE --> PRINT[Wypisz pola na stdout]
-    PRINT --> END([✓ Koniec — bez zapisu do DB])
+    WRITE --> PRINT[Print fields to stdout]
+    PRINT --> END([✓ Done — no DB write])
 ```
 
 ---
 
-*Indeks dokumentacji: [`.docs/README.md`](README.md)*
+*Documentation index: [`.docs/README.md`](README.md)*

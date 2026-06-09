@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cryptocurrency Market Analysis — Dokumentacja</title>
+  <title>Cryptocurrency Market Analysis — Documentation</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -136,11 +136,11 @@
 <body>
 
 <div class="hero">
-  <div class="hero-badge">Zaawansowane Bazy Danych — projekt końcowy</div>
+  <div class="hero-badge">Advanced Databases — Final Project</div>
   <h1>Cryptocurrency Market Analysis</h1>
-  <p>System pobierający dane rynkowe kryptowalut z CoinGecko API,
-     przechowujący je w SQLite i prezentujący w interaktywnych wizualizacjach
-     Plotly — przez Streamlit i Jupyter.</p>
+  <p>A system that fetches cryptocurrency market data from the CoinGecko API,
+     stores it in SQLite, and presents it in interactive Plotly visualizations
+     via Streamlit and Jupyter.</p>
   <div class="hero-chips">
     <span class="chip">🐍 Python 3.13</span>
     <span class="chip">🗄️ SQLite 3</span>
@@ -157,113 +157,113 @@
     CoinGecko API <span class="arrow">──►</span> app.py / notebook <span class="arrow">──►</span> crypto_market.db <span class="arrow">──►</span> Plotly charts
   </div>
 
-  <!-- GŁÓWNE DOKUMENTY -->
-  <div class="section-title">Główne dokumenty</div>
-  <p class="section-sub">Zacznij od <strong>SPRAWOZDANIE.md</strong> — pełny raport akademicki opisujący cały projekt.</p>
+  <!-- MAIN DOCUMENTS -->
+  <div class="section-title">Main Documents</div>
+  <p class="section-sub">Start with <strong>SPRAWOZDANIE.md</strong> — the full academic report describing the entire project.</p>
   <div class="grid-2">
 
     <a href="../SPRAWOZDANIE.md" class="doc-card">
       <div class="doc-card-icon card-violet">📋</div>
-      <h3><span class="tag tag-main">główny</span><span class="tag tag-pl">PL</span> SPRAWOZDANIE.md</h3>
-      <p>Raport akademicki: cel projektu, schemat DB (3NF), architektura, implementacja warstwy danych i prezentacji, wizualizacje, problemy, wnioski.</p>
-      <div class="doc-card-footer">→ Otwórz raport</div>
+      <h3><span class="tag tag-main">main</span> SPRAWOZDANIE.md</h3>
+      <p>Academic report: project goals, DB schema (3NF), architecture, data and presentation layers, visualizations, issues, conclusions.</p>
+      <div class="doc-card-footer">→ Open report</div>
     </a>
 
     <a href="../DOCUMENTATION.md" class="doc-card">
       <div class="doc-card-icon card-blue">📘</div>
-      <h3><span class="tag tag-en">EN</span> DOCUMENTATION.md</h3>
-      <p>Dokumentacja techniczna: DDL, zapytania SQL (DML/SELECT), przepływ danych, referencja modułów app.py i notebooka, konfiguracja.</p>
-      <div class="doc-card-footer">→ Otwórz dokumentację</div>
+      <h3>DOCUMENTATION.md</h3>
+      <p>Technical documentation: DDL, SQL queries (DML/SELECT), data flow, app.py and notebook module reference, configuration.</p>
+      <div class="doc-card-footer">→ Open documentation</div>
     </a>
 
     <a href="../README.md" class="doc-card">
       <div class="doc-card-icon card-green">🚀</div>
       <h3>README.md</h3>
-      <p>Szybki start (<code>uv sync</code>, Streamlit, Jupyter), struktura repozytorium, indeks wszystkich dokumentów, opis funkcjonalności.</p>
-      <div class="doc-card-footer">→ Otwórz README</div>
+      <p>Quick start (<code>uv sync</code>, Streamlit, Jupyter), repository structure, documentation index, feature overview.</p>
+      <div class="doc-card-footer">→ Open README</div>
     </a>
 
     <a href="../.docs/README.md" class="doc-card">
       <div class="doc-card-icon card-yellow">🗂️</div>
-      <h3>.docs/ — indeks techniczny</h3>
-      <p>Mapa dokumentacji: który plik czytać w jakiej sytuacji. Linki do architecture, data-model, api-reference, diagrams.</p>
+      <h3>.docs/ — technical index</h3>
+      <p>Documentation map: which file to read in which situation. Links to architecture, data-model, api-reference, diagrams.</p>
       <div class="doc-card-footer">→ .docs/README.md</div>
     </a>
 
   </div>
 
-  <!-- DOKUMENTACJA TECHNICZNA -->
-  <div class="section-title">Dokumentacja techniczna (.docs/)</div>
+  <!-- TECHNICAL DOCUMENTATION -->
+  <div class="section-title">Technical Documentation (.docs/)</div>
   <div class="grid-2">
 
     <a href="../.docs/architecture.md" class="doc-card">
       <div class="doc-card-icon card-violet">🏗</div>
-      <h3>Architektura</h3>
-      <p>3 warstwy: pozyskiwanie danych → SQLite → prezentacja (Streamlit + Jupyter). Przepływ danych, komponenty, decyzje projektowe.</p>
+      <h3>Architecture</h3>
+      <p>3 layers: data acquisition → SQLite → presentation (Streamlit + Jupyter). Data flow, components, design decisions.</p>
       <div class="doc-card-footer">→ architecture.md</div>
     </a>
 
     <a href="../.docs/data-model.md" class="doc-card">
       <div class="doc-card-icon card-green">🗄</div>
-      <h3>Model danych</h3>
-      <p>Zaimplementowany schemat SQLite: cryptocurrencies, market_snapshots, market_current. DDL, ograniczenia, indeksy, mapowanie API → DB.</p>
+      <h3>Data Model</h3>
+      <p>Implemented SQLite schema: cryptocurrencies, market_snapshots, market_current. DDL, constraints, indexes, API → DB mapping.</p>
       <div class="doc-card-footer">→ data-model.md</div>
     </a>
 
     <a href="../.docs/api-reference.md" class="doc-card">
       <div class="doc-card-icon card-blue">📄</div>
-      <h3>Referencja API</h3>
-      <p>Funkcje app.py (główna aplikacja): DB, ETL, strony Streamlit. Plus main.py (legacy fetcher JSON).</p>
+      <h3>API Reference</h3>
+      <p>app.py functions (main app): DB, ETL, Streamlit pages. Plus main.py (legacy JSON fetcher).</p>
       <div class="doc-card-footer">→ api-reference.md</div>
     </a>
 
     <a href="../.docs/diagrams.md" class="doc-card">
       <div class="doc-card-icon card-yellow">📊</div>
-      <h3>Diagramy</h3>
-      <p>Mermaid: ERD, sekwencji (pobieranie historyczne + live), ETL, architektura komponentów, flowchart create_database().</p>
+      <h3>Diagrams</h3>
+      <p>Mermaid: ERD, sequence (historical + live fetch), ETL, component architecture, create_database() flowchart.</p>
       <div class="doc-card-footer">→ diagrams.md</div>
     </a>
 
     <a href="main.html" class="doc-card">
       <div class="doc-card-icon card-red">📜</div>
       <h3><span class="tag tag-legacy">legacy</span> main.py (HTML)</h3>
-      <p>Dokumentacja początkowego modułu main.py — prosty fetcher JSON (3 monety, bez bazy). Zastąpiony przez app.py.</p>
+      <p>Documentation for the early main.py module — simple JSON fetcher (3 coins, no DB). Replaced by app.py.</p>
       <div class="doc-card-footer">→ main.html</div>
     </a>
 
   </div>
 
   <!-- APP.PY API -->
-  <div class="section-title">app.py — główne funkcje</div>
+  <div class="section-title">app.py — main functions</div>
   <div class="api-card">
     <div class="api-card-header">
-      <span class="api-card-title">app.py — baza danych + ETL + UI</span>
-      <span class="tag tag-main">główny moduł</span>
+      <span class="api-card-title">app.py — database + ETL + UI</span>
+      <span class="tag tag-main">main module</span>
     </div>
     <div class="fn-list">
       <div class="fn-item">
         <span class="fn-sig">create_database()</span>
-        <span class="fn-desc">Tworzy 3 tabele, indeksy i wstawia listę 5 monet. Wywoływana przy starcie.</span>
+        <span class="fn-desc">Creates 3 tables, indexes, and seeds 5 coins. Called at startup.</span>
         <span class="fn-badge-sm badge-db">database</span>
       </div>
       <div class="fn-item">
         <span class="fn-sig">fetch_market_chart()</span>
-        <span class="fn-desc">GET /coins/{id}/market_chart — pobiera 365-dniową historię.</span>
+        <span class="fn-desc">GET /coins/{id}/market_chart — fetches 365-day history.</span>
         <span class="fn-badge-sm badge-public">api</span>
       </div>
       <div class="fn-item">
         <span class="fn-sig">store_market_chart()</span>
-        <span class="fn-desc">INSERT OR REPLACE do market_snapshots — idempotentny zapis historyczny.</span>
+        <span class="fn-desc">INSERT OR REPLACE into market_snapshots — idempotent historical write.</span>
         <span class="fn-badge-sm badge-db">etl</span>
       </div>
       <div class="fn-item">
         <span class="fn-sig">fetch_markets_current()</span>
-        <span class="fn-desc">GET /coins/markets — bieżący snapshot 5 monet.</span>
+        <span class="fn-desc">GET /coins/markets — current snapshot for 5 coins.</span>
         <span class="fn-badge-sm badge-public">api</span>
       </div>
       <div class="fn-item">
         <span class="fn-sig">store_current()</span>
-        <span class="fn-desc">INSERT do market_current — append-only, z collected_at UTC.</span>
+        <span class="fn-desc">INSERT into market_current — append-only, with collected_at UTC.</span>
         <span class="fn-badge-sm badge-db">etl</span>
       </div>
       <div class="fn-item">
@@ -279,12 +279,12 @@
     </div>
   </div>
 
-  <!-- SCHEMAT DB -->
-  <div class="section-title">Schemat bazy danych (crypto_market.db)</div>
+  <!-- DB SCHEMA -->
+  <div class="section-title">Database Schema (crypto_market.db)</div>
   <div class="schema-box">
-<span class="tbl">cryptocurrencies</span>  <span class="col">id</span> TEXT PK · <span class="col">symbol</span> · <span class="col">name</span>  <span style="color:var(--text2)">(5 wierszy)</span><br>
+<span class="tbl">cryptocurrencies</span>  <span class="col">id</span> TEXT PK · <span class="col">symbol</span> · <span class="col">name</span>  <span style="color:var(--text2)">(5 rows)</span><br>
 <span class="tbl">market_snapshots</span>  <span class="col">record_id</span> PK · <span class="fk">crypto_id</span> FK · <span class="col">snapshot_date</span> · <span class="col">price_usd</span> · <span class="col">market_cap</span> · <span class="col">total_volume</span><br>
-&nbsp;&nbsp;<span class="idx">UNIQUE(crypto_id, snapshot_date)</span> · <span class="idx">INDEX idx_snapshots_date</span>  <span style="color:var(--text2)">(~1 826 wierszy)</span><br>
+&nbsp;&nbsp;<span class="idx">UNIQUE(crypto_id, snapshot_date)</span> · <span class="idx">INDEX idx_snapshots_date</span>  <span style="color:var(--text2)">(~1,826 rows)</span><br>
 <span class="tbl">market_current</span>  <span class="col">record_id</span> PK · <span class="fk">crypto_id</span> FK · <span class="col">collected_at</span> · price · mcap · high_24h · low_24h · changes · rank · supply · ath<br>
 &nbsp;&nbsp;<span class="idx">INDEX idx_current_collected_at</span>  <span style="color:var(--text2)">(append-only)</span>
   </div>
@@ -292,7 +292,7 @@
 </div>
 
 <footer>
-  <span>Cryptocurrency Market Analysis — Zaawansowane Bazy Danych, Maj 2026</span>
+  <span>Cryptocurrency Market Analysis — Advanced Databases, May 2026</span>
   <span>Michał Dusza · Szymon Bugajski · Mateusz Basiura</span>
 </footer>
 
