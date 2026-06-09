@@ -10,6 +10,15 @@
 | **Autorzy** | Michał Dusza · Szymon Bugajski · Mateusz Basiura |
 | **Data** | Maj 2026 |
 
+### Powiązana dokumentacja
+
+| Plik | Do czego |
+|------|----------|
+| [`README.md`](README.md) | Szybki start, struktura repo, indeks dokumentacji |
+| [`DOCUMENTATION.md`](DOCUMENTATION.md) | Dokumentacja techniczna (EN): DDL, SQL, moduły |
+| [`.docs/`](.docs/) | Skrócona dokumentacja techniczna (PL) podzielona na tematy |
+| [`docs/index.html`](docs/index.html) | Portal HTML — przeglądanie docs w przeglądarce |
+
 ---
 
 ## Spis treści

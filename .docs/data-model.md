@@ -1,224 +1,255 @@
 # Model danych
 
-## Źródło danych
-
-**API:** CoinGecko v3 — `GET /api/v3/coins/markets`  
-**Monety:** Bitcoin (`btc`), Ethereum (`eth`), Solana (`sol`)  
-**Waluta bazowa:** USD  
-**Plik lokalny:** `coingecko_response.json`
+> Pełny opis akademicki: [`SPRAWOZDANIE.md` §4](../SPRAWOZDANIE.md)  
+> DDL i zapytania SQL (EN): [`DOCUMENTATION.md` §2–3](../DOCUMENTATION.md)
 
 ---
 
-## Schemat odpowiedzi API
+## Przegląd
 
-Odpowiedź to tablica (`array`) obiektów JSON — jeden obiekt na monetę.
+Baza `crypto_market.db` (SQLite 3) składa się z **3 tabel** w modelu gwiazdy:
 
-### Pola rekordu
+- **`cryptocurrencies`** — wymiar (dimension): słownik śledzonych monet
+- **`market_snapshots`** — fakt historyczny: dzienne wartości ceny, kapitalizacji, wolumenu
+- **`market_current`** — fakt bieżący: bogaty snapshot live z API `/coins/markets`
 
-| Pole | Typ JSON | Nullable | Opis | Przykład (BTC) |
-|------|----------|----------|------|----------------|
-| `id` | `string` | ✗ | Unikalny identyfikator monety w CoinGecko | `"bitcoin"` |
-| `symbol` | `string` | ✗ | Ticker giełdowy (lowercase) | `"btc"` |
-| `name` | `string` | ✗ | Pełna nazwa | `"Bitcoin"` |
-| `image` | `string` | ✗ | URL do logo (PNG, large) | `"https://coin-images..."` |
-| `current_price` | `number` | ✗ | Aktualna cena w USD | `76182` |
-| `market_cap` | `number` | ✗ | Kapitalizacja rynkowa (USD) | `1 525 437 558 394` |
-| `market_cap_rank` | `integer` | ✗ | Pozycja w rankingu market cap | `1` |
-| `fully_diluted_valuation` | `number` | ✓ | FDV — wycena przy max_supply w obiegu | `1 525 438 929 779` |
-| `total_volume` | `number` | ✗ | Wolumen obrotu 24h (USD) | `34 007 864 832` |
-| `high_24h` | `number` | ✗ | Najwyższa cena w ciągu 24h (USD) | `77 432` |
-| `low_24h` | `number` | ✗ | Najniższa cena w ciągu 24h (USD) | `75 706` |
-| `price_change_24h` | `number` | ✗ | Zmiana ceny 24h (wartość bezwzględna, USD) | `-619.75` |
-| `price_change_percentage_24h` | `number` | ✗ | Zmiana ceny 24h (procent) | `-0.80695` |
-| `market_cap_change_24h` | `number` | ✗ | Zmiana market cap 24h (USD) | `-12 759 531 947` |
-| `market_cap_change_percentage_24h` | `number` | ✗ | Zmiana market cap 24h (procent) | `-0.82951` |
-| `circulating_supply` | `number` | ✗ | Liczba monet aktualnie w obiegu | `20 022 003.0` |
-| `total_supply` | `number` | ✓ | Całkowita istniejąca podaż | `20 022 021.0` |
-| `max_supply` | `number` | ✓ | Maksymalna możliwa podaż | `21 000 000.0` |
-| `ath` | `number` | ✗ | All-time high (USD) | `126 080` |
-| `ath_change_percentage` | `number` | ✗ | Odległość od ATH (%) | `-39.57641` |
-| `ath_date` | `string` (ISO 8601) | ✗ | Data i czas ATH | `"2025-10-06T18:57:42.558Z"` |
-| `atl` | `number` | ✗ | All-time low (USD) | `67.81` |
-| `atl_change_percentage` | `number` | ✗ | Wzrost od ATL (%) | `112247.90356` |
-| `atl_date` | `string` (ISO 8601) | ✗ | Data i czas ATL | `"2013-07-06T00:00:00.000Z"` |
-| `roi` | `object` \| `null` | ✓ | Return on Investment (tylko dla ETH) | `{times, currency, percentage}` |
-| `last_updated` | `string` (ISO 8601) | ✗ | Czas ostatniej aktualizacji danych | `"2026-04-28T17:46:16.705Z"` |
-| `price_change_percentage_24h_in_currency` | `number` | ✗ | Zmiana ceny 24h w walucie zapytania | `-0.8069524492506842` |
-| `price_change_percentage_7d_in_currency` | `number` | ✗ | Zmiana ceny 7d w walucie zapytania | `0.4987149980680044` |
+Schemat spełnia **3NF** (Trzecią Postać Normalną).
 
-### Struktura pola `roi` (tylko Ethereum)
+---
 
-```json
-{
-    "times": 39.215005359380605,
-    "currency": "btc",
-    "percentage": 3921.5005359380607
-}
+## Diagram ERD
+
+```mermaid
+erDiagram
+    cryptocurrencies {
+        TEXT id PK "np. bitcoin"
+        TEXT symbol NOT_NULL "np. BTC"
+        TEXT name NOT_NULL "np. Bitcoin"
+    }
+
+    market_snapshots {
+        INTEGER record_id PK "AUTOINCREMENT"
+        TEXT crypto_id FK "→ cryptocurrencies.id"
+        DATE snapshot_date NOT_NULL "RRRR-MM-DD"
+        REAL price_usd "cena zamknięcia USD"
+        REAL market_cap "kapitalizacja USD"
+        REAL total_volume "wolumen 24h USD"
+    }
+
+    market_current {
+        INTEGER record_id PK "AUTOINCREMENT"
+        TEXT crypto_id FK "→ cryptocurrencies.id"
+        DATETIME collected_at NOT_NULL "czas pobrania UTC"
+        REAL price_usd
+        REAL market_cap
+        REAL total_volume
+        REAL high_24h
+        REAL low_24h
+        REAL price_change_24h
+        REAL price_change_percentage_24h
+        REAL price_change_percentage_7d
+        INTEGER market_cap_rank
+        REAL circulating_supply
+        REAL total_supply
+        REAL max_supply
+        REAL ath
+        REAL ath_change_percentage
+    }
+
+    cryptocurrencies ||--o{ market_snapshots : "ma snapshoty"
+    cryptocurrencies ||--o{ market_current : "ma snapshoty live"
 ```
 
-| Podpole | Typ | Opis |
+---
+
+## DDL — definicje tabel
+
+```sql
+CREATE TABLE IF NOT EXISTS cryptocurrencies (
+    id     TEXT PRIMARY KEY,
+    symbol TEXT NOT NULL,
+    name   TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS market_snapshots (
+    record_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    crypto_id     TEXT    NOT NULL,
+    snapshot_date DATE    NOT NULL,
+    price_usd     REAL,
+    market_cap    REAL,
+    total_volume  REAL,
+    UNIQUE (crypto_id, snapshot_date),
+    FOREIGN KEY (crypto_id) REFERENCES cryptocurrencies(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_snapshots_date
+    ON market_snapshots(snapshot_date);
+
+CREATE TABLE IF NOT EXISTS market_current (
+    record_id                   INTEGER  PRIMARY KEY AUTOINCREMENT,
+    crypto_id                   TEXT     NOT NULL,
+    collected_at                DATETIME NOT NULL,
+    price_usd                   REAL,
+    market_cap                  REAL,
+    total_volume                REAL,
+    high_24h                    REAL,
+    low_24h                     REAL,
+    price_change_24h            REAL,
+    price_change_percentage_24h REAL,
+    price_change_percentage_7d  REAL,
+    market_cap_rank             INTEGER,
+    circulating_supply          REAL,
+    total_supply                REAL,
+    max_supply                  REAL,
+    ath                         REAL,
+    ath_change_percentage       REAL,
+    FOREIGN KEY (crypto_id) REFERENCES cryptocurrencies(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_current_collected_at
+    ON market_current(collected_at);
+```
+
+---
+
+## Opis tabel
+
+### `cryptocurrencies` — słownik monet
+
+| Kolumna | Typ | Ograniczenia | Opis |
+|---------|-----|-------------|------|
+| `id` | TEXT | PRIMARY KEY | Identyfikator CoinGecko, np. `bitcoin` |
+| `symbol` | TEXT | NOT NULL | Ticker, np. `BTC` |
+| `name` | TEXT | NOT NULL | Pełna nazwa, np. `Bitcoin` |
+
+**Dane:** 5 wierszy (BTC, ETH, SOL, BNB, XRP). Wstawiane przez `INSERT OR IGNORE` w `create_database()`.
+
+### `market_snapshots` — historia dzienna
+
+| Kolumna | Typ | Ograniczenia | Opis |
+|---------|-----|-------------|------|
+| `record_id` | INTEGER | PK, AUTOINCREMENT | Klucz surogatowy |
+| `crypto_id` | TEXT | NOT NULL, FK | → `cryptocurrencies.id` |
+| `snapshot_date` | DATE | NOT NULL | Data `YYYY-MM-DD` (UTC) |
+| `price_usd` | REAL | — | Cena zamknięcia w USD |
+| `market_cap` | REAL | — | Kapitalizacja rynkowa w USD |
+| `total_volume` | REAL | — | Wolumen obrotu 24h w USD |
+
+**Źródło:** `GET /coins/{id}/market_chart?days=365&interval=daily`  
+**Zapis:** `INSERT OR REPLACE` — idempotentny, ~366 wierszy na monetę  
+**Objętość:** ~1 826 wierszy (366 dni × 5 monet)
+
+### `market_current` — bieżące snapshoty
+
+| Kolumna | Typ | Opis |
 |---------|-----|------|
-| `times` | `number` | Wielokrotność zwrotu (np. 39× zwrot) |
-| `currency` | `string` | Waluta bazowa ROI |
-| `percentage` | `number` | Procentowy zwrot z inwestycji |
+| `record_id` | INTEGER PK | Klucz surogatowy |
+| `crypto_id` | TEXT FK | → `cryptocurrencies.id` |
+| `collected_at` | DATETIME | Czas pobrania (UTC) |
+| `price_usd` | REAL | Bieżąca cena |
+| `market_cap` | REAL | Kapitalizacja |
+| `total_volume` | REAL | Wolumen 24h |
+| `high_24h` / `low_24h` | REAL | Min/max cena 24h |
+| `price_change_24h` | REAL | Zmiana ceny 24h (USD) |
+| `price_change_percentage_24h` | REAL | Zmiana ceny 24h (%) |
+| `price_change_percentage_7d` | REAL | Zmiana ceny 7d (%) |
+| `market_cap_rank` | INTEGER | Ranking globalny |
+| `circulating_supply` | REAL | Podaż w obiegu |
+| `total_supply` / `max_supply` | REAL | Podaż całkowita / maksymalna |
+| `ath` | REAL | All-time high (USD) |
+| `ath_change_percentage` | REAL | Odległość od ATH (%) |
+
+**Źródło:** `GET /coins/markets?ids=…`  
+**Zapis:** `INSERT` (append-only — każde pobranie dodaje nowe wiersze)
 
 ---
 
-## Przykładowe dane
+## Ograniczenia integralności
 
-### Bitcoin
-
-```json
-{
-    "id": "bitcoin",
-    "symbol": "btc",
-    "name": "Bitcoin",
-    "current_price": 76182,
-    "market_cap": 1525437558394,
-    "market_cap_rank": 1,
-    "circulating_supply": 20022003.0,
-    "max_supply": 21000000.0,
-    "ath": 126080,
-    "atl": 67.81,
-    "roi": null,
-    "last_updated": "2026-04-28T17:46:16.705Z",
-    "price_change_percentage_24h_in_currency": -0.8069524492506842,
-    "price_change_percentage_7d_in_currency": 0.4987149980680044
-}
-```
-
-### Ethereum (z polem roi)
-
-```json
-{
-    "id": "ethereum",
-    "symbol": "eth",
-    "name": "Ethereum",
-    "current_price": 2291.26,
-    "market_cap": 276468152043,
-    "market_cap_rank": 2,
-    "max_supply": null,
-    "roi": {
-        "times": 39.215005359380605,
-        "currency": "btc",
-        "percentage": 3921.5005359380607
-    },
-    "last_updated": "2026-04-28T17:46:16.654Z"
-}
-```
+| Ograniczenie | Tabela | Definicja | Cel |
+|-------------|--------|-----------|-----|
+| PRIMARY KEY | wszystkie | `id` lub `record_id` | Jednoznaczna identyfikacja |
+| FOREIGN KEY | `market_snapshots`, `market_current` | `crypto_id → cryptocurrencies.id` | Brak rekordów osieroconych |
+| UNIQUE | `market_snapshots` | `(crypto_id, snapshot_date)` | Jeden rekord na monetę na dzień |
+| NOT NULL | `market_snapshots` | `crypto_id`, `snapshot_date` | Klucz naturalny zawsze podany |
+| NOT NULL | `market_current` | `crypto_id`, `collected_at` | Identyfikacja snapshotu |
 
 ---
 
-## Proponowany schemat relacyjnej bazy danych
+## Indeksy
 
-Poniżej zaproponowany podział na tabele dla PostgreSQL / SQLite.
-
-### Tabela `coins`
-
-Dane statyczne / wolno zmieniające się — jeden wiersz na monetę.
-
-```sql
-CREATE TABLE coins (
-    id          TEXT        PRIMARY KEY,   -- "bitcoin", "ethereum", "solana"
-    symbol      TEXT        NOT NULL,      -- "btc", "eth", "sol"
-    name        TEXT        NOT NULL,      -- "Bitcoin"
-    image_url   TEXT,                      -- URL do logo
-    max_supply  NUMERIC,                   -- NULL dla ETH, SOL
-    created_at  TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-### Tabela `market_snapshots`
-
-Dane czasowe — jeden wiersz na (monetę, chwilę) — wstawiane przy każdym pobraniu.
-
-```sql
-CREATE TABLE market_snapshots (
-    snapshot_id                     BIGSERIAL   PRIMARY KEY,
-    coin_id                         TEXT        NOT NULL REFERENCES coins(id),
-    fetched_at                      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    last_updated                    TIMESTAMPTZ NOT NULL,
-
-    -- ceny
-    current_price                   NUMERIC     NOT NULL,
-    high_24h                        NUMERIC,
-    low_24h                         NUMERIC,
-
-    -- kapitalizacja i wolumen
-    market_cap                      BIGINT,
-    market_cap_rank                 INTEGER,
-    fully_diluted_valuation         BIGINT,
-    total_volume                    BIGINT,
-
-    -- podaż
-    circulating_supply              NUMERIC,
-    total_supply                    NUMERIC,
-
-    -- zmiany 24h
-    price_change_24h                        NUMERIC,
-    price_change_percentage_24h             NUMERIC,
-    market_cap_change_24h                   NUMERIC,
-    market_cap_change_percentage_24h        NUMERIC,
-
-    -- zmiany w walucie zapytania
-    price_change_pct_24h_in_currency        NUMERIC,
-    price_change_pct_7d_in_currency         NUMERIC,
-
-    -- ATH / ATL
-    ath                     NUMERIC,
-    ath_change_percentage   NUMERIC,
-    ath_date                TIMESTAMPTZ,
-    atl                     NUMERIC,
-    atl_change_percentage   NUMERIC,
-    atl_date                TIMESTAMPTZ
-);
-```
-
-### Tabela `roi_data`
-
-Dane ROI — obecne tylko dla Ethereum; relacja 0..1 do `market_snapshots`.
-
-```sql
-CREATE TABLE roi_data (
-    roi_id      BIGSERIAL   PRIMARY KEY,
-    snapshot_id BIGINT      NOT NULL REFERENCES market_snapshots(snapshot_id),
-    times       NUMERIC     NOT NULL,
-    currency    TEXT        NOT NULL,
-    percentage  NUMERIC     NOT NULL
-);
-```
-
-### Diagram ERD (tekstowy)
-
-```
-coins (1) ─────────── (N) market_snapshots (1) ─── (0..1) roi_data
-  id (PK)                   snapshot_id (PK)                roi_id (PK)
-  symbol                    coin_id (FK)                    snapshot_id (FK)
-  name                      fetched_at                      times
-  image_url                 last_updated                    currency
-  max_supply                current_price                   percentage
-                            market_cap
-                            ...
-```
+| Indeks | Tabela | Kolumny | Cel |
+|--------|--------|---------|-----|
+| PK autoindex | wszystkie | `record_id` / `id` | Lookup po kluczu głównym |
+| `sqlite_autoindex_…` | `market_snapshots` | `(crypto_id, snapshot_date)` | Filtr po monecie + zakres dat (z UNIQUE) |
+| `idx_snapshots_date` | `market_snapshots` | `snapshot_date` | Filtr po samej dacie |
+| `idx_current_collected_at` | `market_current` | `collected_at` | Filtr po czasie pobrania |
 
 ---
 
-## Mapowanie pól API → kolumny DB
+## Mapowanie API → baza danych
 
-| Pole API | Tabela | Kolumna DB | Uwagi |
-|----------|--------|------------|-------|
-| `id` | `coins` | `id` | PK |
-| `symbol` | `coins` | `symbol` | |
-| `name` | `coins` | `name` | |
-| `image` | `coins` | `image_url` | |
-| `max_supply` | `coins` | `max_supply` | NULL dla ETH, SOL |
-| `current_price` | `market_snapshots` | `current_price` | |
-| `market_cap` | `market_snapshots` | `market_cap` | |
-| `last_updated` | `market_snapshots` | `last_updated` | ISO 8601 → TIMESTAMPTZ |
-| `roi.times` | `roi_data` | `times` | tylko gdy `roi != null` |
-| `roi.currency` | `roi_data` | `currency` | |
-| `roi.percentage` | `roi_data` | `percentage` | |
+### Endpoint historyczny: `/coins/{id}/market_chart`
+
+| Pole API | Tabela | Kolumna DB | Transformacja |
+|----------|--------|------------|---------------|
+| `prices[i][0]` | `market_snapshots` | `snapshot_date` | `ts_ms / 1000` → `YYYY-MM-DD` UTC |
+| `prices[i][1]` | `market_snapshots` | `price_usd` | bezpośrednio |
+| `market_caps[i][1]` | `market_snapshots` | `market_cap` | bezpośrednio |
+| `total_volumes[i][1]` | `market_snapshots` | `total_volume` | bezpośrednio |
+| (parametr URL) | `market_snapshots` | `crypto_id` | `coin_id` z zapytania |
+
+### Endpoint live: `/coins/markets`
+
+| Pole API | Tabela | Kolumna DB |
+|----------|--------|------------|
+| `id` | `market_current` | `crypto_id` |
+| `current_price` | `market_current` | `price_usd` |
+| `market_cap` | `market_current` | `market_cap` |
+| `total_volume` | `market_current` | `total_volume` |
+| `high_24h` | `market_current` | `high_24h` |
+| `low_24h` | `market_current` | `low_24h` |
+| `price_change_24h` | `market_current` | `price_change_24h` |
+| `price_change_percentage_24h` | `market_current` | `price_change_percentage_24h` |
+| `price_change_percentage_7d_in_currency` | `market_current` | `price_change_percentage_7d` |
+| `market_cap_rank` | `market_current` | `market_cap_rank` |
+| `circulating_supply` | `market_current` | `circulating_supply` |
+| `total_supply` | `market_current` | `total_supply` |
+| `max_supply` | `market_current` | `max_supply` |
+| `ath` | `market_current` | `ath` |
+| `ath_change_percentage` | `market_current` | `ath_change_percentage` |
+| (generowane) | `market_current` | `collected_at` | `datetime.utcnow()` |
+
+### Słownik monet
+
+| Pole API (`/coins/markets`) | Tabela | Kolumna DB |
+|-----------------------------|--------|------------|
+| `id` | `cryptocurrencies` | `id` |
+| `symbol` | `cryptocurrencies` | `symbol` (uppercase) |
+| `name` | `cryptocurrencies` | `name` |
 
 ---
 
-*Szczegółowe diagramy — zob. [`diagrams.md`](diagrams.md).*
+## Normalizacja (3NF)
+
+| Tabela | 1NF | 2NF | 3NF | Uwagi |
+|--------|:---:|:---:|:---:|-------|
+| `cryptocurrencies` | ✅ | ✅ | ✅ | Prosta tabela słownikowa |
+| `market_snapshots` | ✅ | ✅ | ✅ | Tabela faktów; brak kolumn pochodnych |
+| `market_current` | ✅ | ✅ | ✅ | Wartości surowe z API, nie pochodne z innych kolumn |
+
+Metadane monety (`symbol`, `name`) przechowywane wyłącznie w `cryptocurrencies` — tabele faktów zawierają tylko klucz obcy `crypto_id`.
+
+---
+
+## Objętość danych (stan projektu)
+
+| Tabela | Wiersze | Opis |
+|--------|---------|------|
+| `cryptocurrencies` | 5 | BTC, ETH, SOL, BNB, XRP |
+| `market_snapshots` | ~1 826 | 366 dni × 5 monet |
+| `market_current` | ~10 | 2 pobrania × 5 monet |
+
+---
+
+*Architektura: [`architecture.md`](architecture.md) · Diagramy: [`diagrams.md`](diagrams.md)*

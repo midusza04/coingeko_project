@@ -4,6 +4,15 @@
 > Automatyka i Robotyka II Stopnia · Informatyka w Sterowaniu i Zarządzaniu  
 > **Team:** Michał Dusza · Szymon Bugajski · Mateusz Basiura
 
+### Related documentation
+
+| Document | Language | Purpose |
+|----------|----------|---------|
+| [`SPRAWOZDANIE.md`](SPRAWOZDANIE.md) | PL | Academic report — full project description for evaluation |
+| [`README.md`](README.md) | PL/EN | Quick start, repo structure, documentation index |
+| [`.docs/`](.docs/) | PL | Technical docs split by topic (architecture, data model, API, diagrams) |
+| [`docs/index.html`](docs/index.html) | PL | Static HTML documentation portal |
+
 ---
 
 ## Table of Contents

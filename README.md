@@ -1,349 +1,209 @@
-# 🪙 Cryptocurrency Market Analysis System
+# Cryptocurrency Market Analysis System
 
-> **Advanced Databases – Final Project**  
+> **Zaawansowane Bazy Danych — projekt końcowy**  
 > Automatyka i Robotyka II Stopnia · Informatyka w Sterowaniu i Zarządzaniu
 
-**Team:** Michał Dusza · Szymon Bugajski · Mateusz Basiura
+**Zespół:** Michał Dusza · Szymon Bugajski · Mateusz Basiura
 
 ---
 
-## Overview
+## Opis
 
-A system that **automatically collects** cryptocurrency market data from the [CoinGecko REST API](https://www.coingecko.com/en/api), **stores it in a relational SQLite database**, and presents the collected data through **interactive statistical visualisations** inside a Jupyter Notebook.
-
-### Analysis types implemented
-
-| Type | Charts | Filters |
-|------|--------|---------|
-| **Time Series** | Line chart with optional moving average | 6 (coin, start date, end date, metric, MA window, log scale) |
-| **Quantitative Analysis** | Bar chart / Box plot / Violin plot | 6 (coin, metric, period, aggregation, sort order, chart type) |
-| **Market Overview** | Summary table · Grouped bar · Heatmap · Treemap | — |
-| **Correlation & Volatility** | Correlation matrix · Annualised volatility bar | — |
-
----
-
-## Tech Stack
-
-| Component | Technology |
-|-----------|-----------|
-| Language | Python 3.13 |
-| Package manager | [uv](https://docs.astral.sh/uv/) |
-| Database | SQLite 3 (file: `crypto_market.db`) |
-| Data source | CoinGecko Public API v3 |
-| Notebook | JupyterLab / Jupyter Notebook |
-| Visualisation | Plotly 6, ipywidgets 8 |
-| Data manipulation | pandas 3, numpy |
-
----
-
-## Project Structure
+System **automatycznie pobiera** dane rynkowe kryptowalut z publicznego API [CoinGecko](https://www.coingecko.com/en/api), **przechowuje je w relacyjnej bazie SQLite** (`crypto_market.db`) i prezentuje w postaci **interaktywnych wizualizacji** — w notebooku Jupyter oraz w aplikacji webowej Streamlit.
 
 ```
-coingeko_project/
-├── crypto_market_analysis.ipynb   ← main notebook (all stages)
-├── crypto_market.db               ← SQLite database (auto-created on first run)
-├── pyproject.toml                 ← dependencies managed by uv
-├── uv.lock                        ← locked dependency versions
-├── .python-version                ← pinned Python 3.13
-├── main.py                        ← standalone data-fetch script (reference)
-└── README.md
+CoinGecko API  ──►  app.py / notebook  ──►  crypto_market.db  ──►  Plotly charts
 ```
+
+**Śledzone monety:** BTC · ETH · SOL · BNB · XRP (5 monet)  
+**Dane historyczne:** 365 dni × 5 monet ≈ 1 826 rekordów w `market_snapshots`  
+**Python:** 3.13 · **Menedżer pakietów:** [uv](https://docs.astral.sh/uv/)
 
 ---
 
-## Quick Start (uv)
-
-### 1 · Clone / open the project
+## Szybki start
 
 ```powershell
-cd coingeko_project
-```
-
-### 2 · Install all dependencies
-
-```powershell
+# 1. Zainstaluj zależności
 uv sync
-```
 
-This creates a `.venv` folder and installs all packages declared in `pyproject.toml`
-(pandas, plotly, ipywidgets, jupyter, requests, …).
-
-### 3 · Register the Jupyter kernel *(first time only)*
-
-```powershell
-uv run python -m ipykernel install --user `
-    --name crypto-market-analysis `
-    --display-name "Python (crypto-market-analysis)"
-```
-
-### 4 · Launch JupyterLab
-
-```powershell
-uv run jupyter lab
-```
-
-Open `crypto_market_analysis.ipynb` and select the
-**`Python (crypto-market-analysis)`** kernel (or the auto-detected `.venv`).
-
-### 5 · Run the notebook
-
-Execute cells top-to-bottom (**Run → Run All Cells**).  
-Stage 5 fetches data from the API (~40 s due to rate-limit delays).  
-All subsequent stages work entirely from the local database.
-
-> **VS Code users:** open the `.ipynb` file directly. VS Code auto-detects the
-> `.venv` created by `uv sync` and offers it as the kernel.
-
----
-
-## Streamlit Web Application
-
-As an alternative to the notebook, the project includes a fully interactive **Streamlit app** (`app.py`) that exposes all analyses through a web UI.
-
-### Launch the app
-
-```powershell
+# 2a. Uruchom aplikację webową (zalecane)
 uv run streamlit run app.py
+# → http://localhost:8501
+
+# 2b. Lub uruchom notebook analityczny
+uv run jupyter lab crypto_market_analysis.ipynb
 ```
 
-`uv run` automatically uses the project's `.venv` — no manual activation needed.  
-The app opens in your default browser at **http://localhost:8501**.
-
-### Pages
-
-| Page | Description |
-|------|-------------|
-| **Overview** | DB statistics, row counts, navigation guide |
-| **Data Collection** | Fetch historical & live data from CoinGecko API |
-| **Time Series** | Interactive line chart with moving average (6 sidebar filters) |
-| **Quantitative Analysis** | Bar / Box / Violin chart (6 sidebar filters) |
-| **Market Dashboard** | KPI cards · grouped bar · heatmap · treemap |
-| **Correlation & Volatility** | Correlation matrix · annualised volatility bar |
-
-> The app reads from `crypto_market.db`. Run **Data Collection** first if the database is empty.
+> Przy pierwszym uruchomieniu przejdź do strony **Data Collection** w Streamlit (lub Stage 5 w notebooku), aby pobrać dane z API do bazy.
 
 ---
 
-## Database Schema
+## Funkcjonalności
+
+| Moduł | Co robi |
+|-------|---------|
+| **Pozyskiwanie danych** | 365-dniowa historia (cena, kapitalizacja, wolumen) + bieżący snapshot rynkowy |
+| **Baza danych** | 3 tabele SQLite: `cryptocurrencies`, `market_snapshots`, `market_current` — FK, UNIQUE, indeksy, 3NF |
+| **Szeregi czasowe** | Wykres liniowy z filtrowaniem po monecie, dacie, metryce; średnia krocząca; skala log |
+| **Analiza ilościowa** | Wykres słupkowy / pudełkowy / skrzypcowy z agregacjami (mean, max, min, std) |
+| **Dashboard rynkowy** | KPI, tabela, grouped bar, heatmapa zmian, treemap kapitalizacji |
+| **Korelacja i zmienność** | Macierz korelacji, roczna zmienność, krocząca korelacja z BTC |
+
+---
+
+## Struktura repozytorium
 
 ```
-crypto_market.db
+project/
 │
-├── cryptocurrencies          ← master list of tracked assets
-│     id TEXT PK
-│     symbol TEXT             (e.g. BTC)
-│     name   TEXT             (e.g. Bitcoin)
+├── app.py                          # Główna aplikacja Streamlit (ETL + 6 stron UI)
+├── crypto_market_analysis.ipynb    # Notebook analityczny (11 etapów)
+├── crypto_market.db                  # Baza SQLite (tworzona automatycznie)
 │
-├── market_snapshots          ← historical daily candles  [1 826 rows]
-│     record_id   INTEGER PK AUTOINCREMENT
-│     crypto_id   TEXT  FK → cryptocurrencies.id
-│     snapshot_date DATE                          UNIQUE(crypto_id, snapshot_date)
-│     price_usd   REAL
-│     market_cap  REAL
-│     total_volume REAL
-│     INDEX idx_snapshots_date(snapshot_date)
+├── pyproject.toml                    # Zależności projektu (uv)
+├── uv.lock                           # Zablokowane wersje pakietów
+├── .python-version                   # Python 3.13
 │
-└── market_current            ← live snapshots (one row per fetch per coin)
-      record_id                INTEGER PK AUTOINCREMENT
-      crypto_id                TEXT  FK → cryptocurrencies.id
-      collected_at             DATETIME
-      price_usd / market_cap / total_volume / high_24h / low_24h
-      price_change_24h / price_change_percentage_24h / price_change_percentage_7d
-      market_cap_rank / circulating_supply / total_supply / max_supply
-      ath / ath_change_percentage
-      INDEX idx_current_collected_at(collected_at)
+├── SPRAWOZDANIE.md                   # Raport akademicki (PL) — główny opis projektu
+├── DOCUMENTATION.md                  # Dokumentacja techniczna (EN) — DDL, SQL, moduły
+├── README.md                         # Ten plik — szybki start i indeks dokumentacji
+│
+├── .docs/                            # Dokumentacja techniczna (PL, skrócona)
+│   ├── README.md                     #   Indeks folderu .docs
+│   ├── architecture.md               #   Architektura 3-warstwowa
+│   ├── data-model.md                 #   Schemat SQLite + mapowanie API
+│   ├── api-reference.md              #   Referencja funkcji app.py i main.py
+│   └── diagrams.md                   #   Diagramy Mermaid
+│
+├── docs/                             # Statyczna dokumentacja HTML
+│   ├── index.html                    #   Portal dokumentacji
+│   └── main.html                     #   Referencja legacy modułu main.py
+│
+├── main.py                           # [legacy] Prosty fetcher JSON → coingecko_response.json
+├── test.ipynb                        # [legacy] Eksploracyjny notebook API (3 monety)
+├── coingecko_response.json           # [legacy] Przykładowa odpowiedź API
+│
+├── generate_sprawozdanie.py          # Generator raportu DOCX ze SPRAWOZDANIE.md
+├── SPRAWOZDANIE.docx                 # Raport Word (wygenerowany)
+└── raport_cryptomarket_db.docx       # Starszy raport Word (v0.1)
 ```
-
-### Current data volume
-
-| Table | Rows |
-|-------|------|
-| `cryptocurrencies` | 5 |
-| `market_snapshots` | 1 826 (366 days × 5 coins) |
-| `market_current` | 10 (2 live fetches × 5 coins) |
-
----
-
-## Coins Tracked
-
-| Symbol | Name |
-|--------|------|
-| BTC | Bitcoin |
-| ETH | Ethereum |
-| SOL | Solana |
-| BNB | BNB (Binance Coin) |
-| XRP | XRP (Ripple) |
-
----
-
-## Notebook Stages
-
-| Stage | Cell(s) | Description |
-|-------|---------|-------------|
-| 1 | 3 | Dependencies note (managed by uv) |
-| 2 | 5 | Imports, constants, `COINS` list |
-| 3 | 7 | `CREATE TABLE` statements, indexes, FK constraints |
-| 4 | 8 | Insert coin master list, verify |
-| 5 | 10 | API helper functions (`fetch_market_chart`, `store_market_chart`, …) |
-| 5 | 12 | **Fetch 365-day history** from CoinGecko + store in DB |
-| 6 | 15 | Verify row counts & date ranges in DB |
-| 7 | 17 | Load full dataset into a pandas DataFrame |
-| 8 | 19 | **Time Series** interactive chart (6 filters) |
-| 9 | 21 | **Quantitative Analysis** interactive chart (6 filters) |
-| 10 | 23 | **Market Overview Dashboard** (table · bar · heatmap · treemap) |
-| 11 | 25 | **Correlation matrix** + **Annualised Volatility** bar chart |
-
----
-
-## API Details
-
-| Item | Value |
-|------|-------|
-| Base URL | `https://api.coingecko.com/api/v3` |
-| Endpoint (history) | `GET /coins/{id}/market_chart?vs_currency=usd&days=365&interval=daily` |
-| Endpoint (live) | `GET /coins/markets?vs_currency=usd&ids=…` |
-| Rate limit (free tier) | ~10–30 requests / minute |
-| Auth required | No (public free tier) |
-| Delay between calls | 10 s (configurable via `REQUEST_DELAY` in Stage 2) |
-
----
-
-## Refreshing Data
-
-Re-run **Stage 5** (cell 12) at any time.  
-The `INSERT OR REPLACE` constraint on `(crypto_id, snapshot_date)` ensures
-historical rows are never duplicated — only new dates are added.
-
-```powershell
-# One-liner refresh from CLI
-uv run jupyter nbconvert --to notebook --execute crypto_market_analysis.ipynb
-```
-
----
-
-## Użycie
-
-### Pobierz dane z API
-
-```bash
-uv run python main.py
-# lub
-python main.py
-```
-
-**Przykładowe wyjście:**
-
-```
-Status code: 200
-Zapisano dane do pliku: coingecko_response.json
-
-Dostępne pola dla pierwszego rekordu:
-- id
-- symbol
-- name
-- image
-- current_price
-- market_cap
-- market_cap_rank
-- fully_diluted_valuation
-- total_volume
-- high_24h
-- low_24h
-- price_change_24h
-- price_change_percentage_24h
-- market_cap_change_24h
-- market_cap_change_percentage_24h
-- circulating_supply
-- total_supply
-- max_supply
-- ath
-- ath_change_percentage
-- ath_date
-- atl
-- atl_change_percentage
-- atl_date
-- roi
-- last_updated
-- price_change_percentage_24h_in_currency
-- price_change_percentage_7d_in_currency
-```
-
-### Notebook eksploracyjny
-
-```bash
-uv run jupyter notebook test.ipynb
-```
-
-### Generowanie dokumentacji pydoc
-
-```bash
-uv run python -m pydoc -w main
-# Tworzy plik main.html z dokumentacją modułu
-```
-
----
-
-## Format danych
-
-Plik `coingecko_response.json` zawiera tablicę obiektów JSON, po jednym na monetę.
-
-**Przykładowy rekord (Bitcoin):**
-
-```json
-{
-    "id": "bitcoin",
-    "symbol": "btc",
-    "name": "Bitcoin",
-    "current_price": 76182,
-    "market_cap": 1525437558394,
-    "market_cap_rank": 1,
-    "high_24h": 77432,
-    "low_24h": 75706,
-    "price_change_percentage_24h": -0.80695,
-    "price_change_percentage_7d_in_currency": 0.4987149980680044,
-    "last_updated": "2026-04-28T17:46:16.705Z"
-}
-```
-
-Pełny opis wszystkich pól — zob. [`.docs/data-model.md`](.docs/data-model.md).
-
----
-
-## Dokumentacja
-
-Pełna dokumentacja techniczna znajduje się w folderze [`.docs/`](.docs/):
-
-| Plik | Zawartość |
-|------|-----------|
-| [`.docs/architecture.md`](.docs/architecture.md) | Architektura systemu, opis warstw, stos technologiczny |
-| [`.docs/data-model.md`](.docs/data-model.md) | Schemat danych API, typy pól, opis semantyczny |
-| [`.docs/api-reference.md`](.docs/api-reference.md) | Referencja funkcji i modułów (format pydoc) |
-| [`.docs/diagrams.md`](.docs/diagrams.md) | Diagramy Mermaid: sekwencji, klas, przepływu |
 
 ---
 
 ## Stos technologiczny
 
-| Komponent | Technologia | Wersja |
-|-----------|-------------|--------|
-| Język | Python | ≥ 3.14 |
-| HTTP client | requests | ≥ 2.33.1 |
-| Menedżer pakietów | uv | latest |
-| Źródło danych | CoinGecko API v3 | public |
-| Notebook | Jupyter | — |
+| Komponent | Technologia |
+|-----------|-------------|
+| Język | Python 3.13 |
+| Menedżer pakietów | uv |
+| Baza danych | SQLite 3 (stdlib) |
+| Źródło danych | CoinGecko API v3 (publiczne) |
+| Aplikacja webowa | Streamlit 1.57 |
+| Notebook | JupyterLab 4 + ipywidgets 8 |
+| Wizualizacja | Plotly 6 |
+| Dane | pandas 2.2+ |
 
 ---
 
-## Roadmap
+## Baza danych
 
 ```
-v0.1  ✅  Data ingestion — fetch & save JSON
-v0.2  🔜  Schema design — DDL dla PostgreSQL/SQLite
-v0.3  🔜  ETL pipeline — załadowanie JSON do bazy
-v0.4  🔜  Analytical queries — SQL raportowanie
-v0.5  🔜  Scheduling — cykliczne pobieranie danych (cron / APScheduler)
+crypto_market.db
+│
+├── cryptocurrencies          ← słownik monet (5 wierszy)
+│     id TEXT PK · symbol · name
+│
+├── market_snapshots          ← historia dzienna (~1 826 wierszy)
+│     record_id PK · crypto_id FK · snapshot_date
+│     price_usd · market_cap · total_volume
+│     UNIQUE(crypto_id, snapshot_date)
+│     INDEX idx_snapshots_date
+│
+└── market_current            ← bieżące snapshoty (append-only)
+      record_id PK · crypto_id FK · collected_at
+      price_usd · market_cap · high_24h · low_24h
+      price_change_* · market_cap_rank · supply · ath
+      INDEX idx_current_collected_at
 ```
+
+Szczegóły DDL, ograniczeń i normalizacji → [`SPRAWOZDANIE.md` §4](SPRAWOZDANIE.md) lub [`.docs/data-model.md`](.docs/data-model.md).
 
 ---
 
-*Projekt akademicki — Wydział Informatyki, semestr 7, przedmiot: Bazy Danych.*
+## Aplikacja Streamlit (`app.py`)
+
+```powershell
+uv run streamlit run app.py
+```
+
+| Strona | Opis |
+|--------|------|
+| **Overview** | Statystyki bazy, zakres dat, nawigacja |
+| **Data Collection** | Pobieranie danych historycznych i live z CoinGecko |
+| **Time Series** | Wykres liniowy (6 filtrów w sidebarze) |
+| **Quantitative Analysis** | Bar / Box / Violin (6 filtrów) |
+| **Market Dashboard** | KPI · tabela · grouped bar · heatmap · treemap |
+| **Correlation & Volatility** | Macierz korelacji · zmienność · korelacja z BTC |
+
+---
+
+## Notebook (`crypto_market_analysis.ipynb`)
+
+| Etap | Opis |
+|------|------|
+| 1–2 | Środowisko, importy, stałe (`COINS`, `METRIC_MAP`) |
+| 3–4 | DDL bazy, wstawienie listy monet |
+| 5 | Pobieranie 365-dniowej historii z API + zapis do DB |
+| 6–7 | Weryfikacja DB, wczytanie do pandas DataFrame |
+| 8 | Szeregi czasowe (ipywidgets + Plotly) |
+| 9 | Analiza ilościowa |
+| 10 | Dashboard rynkowy |
+| 11 | Korelacja i zmienność |
+
+---
+
+## Dokumentacja — co jest do czego
+
+| Plik | Język | Dla kogo | Zawartość |
+|------|-------|----------|-----------|
+| **[`SPRAWOZDANIE.md`](SPRAWOZDANIE.md)** | PL | Ocena / prezentacja | Pełny raport akademicki: cel, schemat DB, architektura, implementacja, wizualizacje, problemy, wnioski |
+| **[`DOCUMENTATION.md`](DOCUMENTATION.md)** | EN | Deweloperzy | DDL, zapytania SQL, przepływ danych, referencja modułów, konfiguracja |
+| **[`.docs/`](.docs/)** | PL | Szybki przegląd | Skrócona dokumentacja techniczna podzielona na tematy |
+| **[`docs/index.html`](docs/index.html)** | PL | Przeglądarka | Statyczny portal HTML z linkami do wszystkich sekcji |
+| **`SPRAWOZDANIE.docx`** | PL | Druk / oddanie | Wygenerowany raport Word (`generate_sprawozdanie.py`) |
+
+### Folder `.docs/` — szczegóły
+
+| Plik | Zawartość |
+|------|-----------|
+| [`.docs/README.md`](.docs/README.md) | Indeks dokumentacji technicznej |
+| [`.docs/architecture.md`](.docs/architecture.md) | 3 warstwy: pozyskiwanie → SQLite → prezentacja |
+| [`.docs/data-model.md`](.docs/data-model.md) | Schemat SQLite, mapowanie pól API → kolumny DB |
+| [`.docs/api-reference.md`](.docs/api-reference.md) | Funkcje `app.py` (główne) i `main.py` (legacy) |
+| [`.docs/diagrams.md`](.docs/diagrams.md) | Diagramy Mermaid: ERD, sekwencji, ETL, architektura |
+
+---
+
+## Pliki legacy (początek projektu)
+
+| Plik | Opis |
+|------|------|
+| `main.py` | Prosty skrypt: pobiera 3 monety z API → zapisuje `coingecko_response.json` (bez bazy) |
+| `test.ipynb` | Eksploracyjny notebook — inspekcja odpowiedzi API |
+| `coingecko_response.json` | Przykładowa odpowiedź API (BTC, ETH, SOL) |
+
+Główny system (`app.py` + notebook) zastąpił te pliki — pozostawione jako referencja.
+
+---
+
+## Odświeżanie danych
+
+W Streamlit: strona **Data Collection** → przyciski *Fetch Historical* / *Fetch Live Snapshot*.  
+W notebooku: ponownie uruchom **Stage 5** (cell 12).
+
+`INSERT OR REPLACE` na `(crypto_id, snapshot_date)` gwarantuje idempotentny zapis — ponowne pobieranie nie tworzy duplikatów.
+
+---
+
+*Projekt akademicki — Zaawansowane Bazy Danych, Maj 2026.*

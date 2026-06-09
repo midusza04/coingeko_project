@@ -1,7 +1,7 @@
 [project]
 name = "crypto-market-analysis"
 version = "0.1.0"
-description = "Cryptocurrency market data ingestion from CoinGecko API — databases course project"
+description = "Cryptocurrency market analysis — CoinGecko API, SQLite, Streamlit, Jupyter"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

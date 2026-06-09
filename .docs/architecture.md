@@ -1,113 +1,147 @@
 # Architektura systemu
 
+> Pełny opis akademicki: [`SPRAWOZDANIE.md` §5](../SPRAWOZDANIE.md)  
+> Wersja angielska: [`DOCUMENTATION.md` §1](../DOCUMENTATION.md)
+
+---
+
 ## Przegląd
 
-Projekt realizuje **warstwę ingestion danych** dla relacyjnej bazy danych notowań kryptowalut.  
-Pobiera dane z zewnętrznego REST API, normalizuje je do formatu JSON i zapisuje lokalnie — stanowiąc punkt wejściowy dla dalszego ETL do bazy.
+System Analizy Rynku Kryptowalut to kompletna aplikacja end-to-end:
+
+1. **Pobiera** dane historyczne i bieżące z CoinGecko REST API v3.
+2. **Przechowuje** je w znormalizowanej bazie SQLite (`crypto_market.db`).
+3. **Prezentuje** w interaktywnych wizualizacjach Plotly — przez Streamlit (`app.py`) lub Jupyter (`crypto_market_analysis.ipynb`).
 
 ---
 
-## Warstwy systemu
+## Architektura 3-warstwowa
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                     WARSTWA ZEWNĘTRZNA                       │
-│                                                              │
-│   ┌──────────────────────────────────────────────────────┐   │
-│   │          CoinGecko REST API v3                       │   │
-│   │   GET /api/v3/coins/markets?vs_currency=usd&...      │   │
-│   └──────────────────────────────────────────────────────┘   │
-└──────────────────────────────┬───────────────────────────────┘
-                               │ HTTP/HTTPS (JSON)
-                               ▼
-┌──────────────────────────────────────────────────────────────┐
-│                   WARSTWA INGESTION (Python)                  │
-│                                                              │
-│   ┌──────────────────────────────────────────────────────┐   │
-│   │                    main.py                           │   │
-│   │                                                      │   │
-│   │   main()                                             │   │
-│   │   ├── buduje parametry zapytania                     │   │
-│   │   ├── wykonuje requests.get(url, params, timeout)    │   │
-│   │   ├── waliduje status HTTP (raise_for_status)        │   │
-│   │   ├── parsuje JSON → lista słowników                 │   │
-│   │   └── serializuje do pliku (json.dumps + write_text) │   │
-│   └──────────────────────────────────────────────────────┘   │
-└──────────────────────────────┬───────────────────────────────┘
-                               │ zapis pliku
-                               ▼
-┌──────────────────────────────────────────────────────────────┐
-│                   WARSTWA PERSYSTENCJI (lokalny FS)           │
-│                                                              │
-│   coingecko_response.json                                    │
-│   (sformatowany JSON, ~96 linii, 3 rekordy)                  │
-└──────────────────────────────┬───────────────────────────────┘
-                               │ [planowane]
-                               ▼
-┌──────────────────────────────────────────────────────────────┐
-│               WARSTWA BAZY DANYCH (planowana)                 │
-│                                                              │
-│   PostgreSQL / SQLite                                        │
-│   ├── tabela: coins                                          │
-│   ├── tabela: market_snapshots                               │
-│   └── tabela: roi_data                                       │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                   WARSTWA PREZENTACJI                    │
+│                                                         │
+│   📓 crypto_market_analysis.ipynb    🌐 app.py          │
+│   11 etapów · ipywidgets             6 stron Streamlit │
+│   Plotly charts                      Plotly charts       │
+└──────────────────────┬──────────────────────────────────┘
+                       │ pd.read_sql (SELECT + JOIN)
+┌──────────────────────▼──────────────────────────────────┐
+│                   WARSTWA PRZECHOWYWANIA                 │
+│                                                         │
+│         🗄️  SQLite 3 — crypto_market.db                 │
+│         cryptocurrencies | market_snapshots              │
+│         market_current                                  │
+└──────────────────────┬──────────────────────────────────┘
+                       │ INSERT OR REPLACE / INSERT
+┌──────────────────────▼──────────────────────────────────┐
+│                   WARSTWA POZYSKIWANIA DANYCH            │
+│                                                         │
+│   fetch_market_chart()        fetch_markets_current()   │
+│   /coins/{id}/market_chart    /coins/markets            │
+│               ↑                        ↑                │
+│         CoinGecko Public REST API v3                    │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Przepływ danych (Data Flow)
+## Komponenty
 
-| Krok | Komponent | Akcja | Artefakt wyjściowy |
-|------|-----------|-------|--------------------|
-| 1 | `main.py` | Buduje URL + query params | `dict` params |
-| 2 | `requests` | `GET /coins/markets` → timeout 10s | `Response` object |
-| 3 | `main.py` | `raise_for_status()` — walidacja kodu HTTP | (wyjątek lub kontynuacja) |
-| 4 | `main.py` | `response.json()` — deserializacja | `list[dict]` |
-| 5 | `json` | `json.dumps(data, indent=4)` | `str` (sformatowany JSON) |
-| 6 | `pathlib.Path` | `write_text(...)` | `coingecko_response.json` |
-| 7 | `main.py` | Wypisuje pola pierwszego rekordu | stdout |
-
----
-
-## Komponenty i odpowiedzialności
-
-### `main.py` — moduł ingestion
+### `app.py` — główna aplikacja (Streamlit)
 
 **Odpowiedzialności:**
-- Konfiguracja i wykonanie zapytania HTTP do CoinGecko API
-- Obsługa błędów sieciowych i HTTP
-- Serializacja danych do formatu JSON
-- Zapis pliku wyjściowego
+- Inicjalizacja bazy (`create_database()`)
+- Pobieranie danych z API (`fetch_market_chart`, `fetch_markets_current`)
+- Zapis do SQLite (`store_market_chart`, `store_current`)
+- Odczyt i cache danych (`load_snapshots`, `load_db_stats`)
+- 6 stron wizualizacji (Overview, Data Collection, Time Series, Quantitative, Dashboard, Correlation)
 
-**Nie odpowiada za:**
-- Parsowanie / transformację poszczególnych pól
-- Ładowanie do bazy danych
-- Walidację wartości (zakres, format daty itp.)
-- Harmonogramowanie (cron / scheduler)
+**Uruchomienie:** `uv run streamlit run app.py` → `http://localhost:8501`
 
-### `test.ipynb` — notebook eksploracyjny
+### `crypto_market_analysis.ipynb` — notebook analityczny
 
-**Cel:** szybka inspekcja odpowiedzi API bez uruchamiania pełnego skryptu.  
-Różnice względem `main.py`:
-- brak `timeout` w zapytaniu
-- brak `raise_for_status()`
-- brak zapisu do pliku
-- wypisuje pełny pierwszy rekord (JSON)
+**Odpowiedzialności:**
+- Te same funkcje DB/API co `app.py` (zduplikowane w komórkach)
+- 11 etapów: od DDL przez ETL po wizualizacje z ipywidgets
+- Środowisko eksploracji danych bez serwera webowego
+
+**Uruchomienie:** `uv run jupyter lab crypto_market_analysis.ipynb`
+
+### `crypto_market.db` — baza SQLite
+
+- Tworzona automatycznie przy pierwszym uruchomieniu `app.py` lub notebooka (Stage 3)
+- 3 tabele, klucze obce, UNIQUE, 2 jawne indeksy
+- Plik binarny w katalogu projektu (nie commitowany do repo w pełnej wersji)
+
+### Pliki legacy
+
+| Plik | Rola |
+|------|------|
+| `main.py` | Prosty fetcher: 3 monety → `coingecko_response.json` (bez bazy) |
+| `test.ipynb` | Eksploracyjna inspekcja odpowiedzi API |
+| `coingecko_response.json` | Przykładowa odpowiedź `/coins/markets` |
+
+---
+
+## Przepływ danych
+
+### Pobieranie historyczne
+
+| Krok | Komponent | Akcja |
+|------|-----------|-------|
+| 1 | UI (Streamlit / notebook) | Użytkownik inicjuje pobieranie |
+| 2 | `fetch_market_chart(coin_id, days=365)` | `GET /coins/{id}/market_chart` |
+| 3 | API | Zwraca `{prices, market_caps, total_volumes}` jako tablice `[ts_ms, value]` |
+| 4 | `store_market_chart()` | Konwersja `ts_ms` → `YYYY-MM-DD` (UTC) |
+| 5 | SQLite | `INSERT OR REPLACE INTO market_snapshots` (bulk `executemany`) |
+| 6 | `time.sleep(10)` | Opóźnienie między monetami (rate limit) |
+| 7 | Powtórz | Dla każdej z 5 monet |
+
+### Pobieranie bieżącego snapshotu
+
+| Krok | Komponent | Akcja |
+|------|-----------|-------|
+| 1 | `fetch_markets_current()` | `GET /coins/markets?ids=bitcoin,ethereum,solana,binancecoin,ripple` |
+| 2 | API | Zwraca listę 5 obiektów z danymi live |
+| 3 | `store_current()` | `INSERT INTO market_current` z `collected_at = UTC now` |
+
+### Odczyt do wizualizacji
+
+| Krok | Komponent | Akcja |
+|------|-----------|-------|
+| 1 | `load_snapshots()` | `SELECT … FROM market_snapshots JOIN cryptocurrencies` |
+| 2 | pandas | `pd.read_sql` → DataFrame |
+| 3 | Plotly | Filtrowanie, agregacja, renderowanie wykresu |
+
+---
+
+## Kluczowe decyzje projektowe
+
+| Decyzja | Uzasadnienie |
+|---------|--------------|
+| **SQLite** | Zero konfiguracji, jeden plik, pełne SQL + FK + indeksy — idealne dla projektu lokalnego |
+| **INSERT OR REPLACE** | Idempotentny zapis historyczny — ponowne pobieranie nie duplikuje wierszy |
+| **`executemany` + `?`** | Bezpieczne parametryzowane zapytania — ochrona przed SQL injection |
+| **`@st.cache_data(ttl=60)`** | Cache odczytu DB w Streamlit — mniej zapytań przy nawigacji |
+| **`uv run`** | Automatyczne użycie `.venv` bez ręcznej aktywacji |
+| **Oddzielenie ETL od UI** | Notebook i Streamlit czytają z tej samej bazy — warstwy niezależne |
 
 ---
 
 ## Stos technologiczny
 
-| Kategoria | Technologia | Uzasadnienie |
-|-----------|-------------|--------------|
-| Język | Python 3.14 | Bogaty ekosystem, szybki prototyping |
-| HTTP client | `requests` 2.33.1 | Najpopularniejszy klient HTTP w Pythonie |
-| Serializacja | `json` (stdlib) | Brak zewnętrznych zależności |
-| Ścieżki plików | `pathlib.Path` (stdlib) | Cross-platform, idiomatyczny Python |
-| Zarządzanie pakietami | `uv` | Szybki, nowoczesny resolver zależności |
-| Źródło danych | CoinGecko API v3 | Bezpłatne, publiczne API notowań krypto |
-| Notebook | Jupyter | Eksploracja danych |
+| Warstwa | Technologie |
+|---------|-------------|
+| Język | Python 3.13 |
+| Pakiety | uv (`pyproject.toml` + `uv.lock`) |
+| HTTP | requests 2.33+ |
+| Baza | sqlite3 (stdlib) |
+| Dane | pandas 2.2+ |
+| Wykresy | Plotly 6.7+ |
+| Web UI | Streamlit 1.57+ |
+| Notebook | JupyterLab 4 + ipywidgets 8.1+ |
+| API | CoinGecko v3 (publiczne, bez klucza) |
 
 ---
 
@@ -115,39 +149,22 @@ Różnice względem `main.py`:
 
 | Sytuacja | Mechanizm | Skutek |
 |----------|-----------|--------|
-| Kod HTTP 4xx / 5xx | `response.raise_for_status()` | `HTTPError` — skrypt kończy działanie z traceback |
-| Brak połączenia sieciowego | `requests.exceptions.ConnectionError` | Propagacja wyjątku |
-| Timeout (> 10s) | `timeout=10` w `requests.get` | `requests.exceptions.Timeout` |
-| Błąd zapisu pliku | `OSError` z `Path.write_text` | Propagacja wyjątku |
+| HTTP 4xx/5xx | `response.raise_for_status()` | `HTTPError` — komunikat w UI |
+| HTTP 429 (rate limit) | Obsługa w warstwie UI | Komunikat „spróbuj ponownie za chwilę” |
+| Timeout (>20s) | `timeout=20` w `requests.get` | `Timeout` exception |
+| Brak sieci | `ConnectionError` | Komunikat błędu w Streamlit / traceback w notebooku |
+| Pusta baza | Sprawdzenie w UI | Strony analiz pokazują komunikat „brak danych” |
 
 ---
 
-## Ograniczenia obecnej implementacji
+## Ograniczenia
 
-1. **Brak persystencji historycznej** — każde wywołanie nadpisuje `coingecko_response.json`.
-2. **Hardkodowane monety** — lista `bitcoin,ethereum,solana` jest zakodowana na stałe.
-3. **Brak walidacji danych** — pola nie są sprawdzane pod kątem poprawności typów / zakresów.
-4. **Brak harmonogramowania** — skrypt musi być uruchamiany ręcznie.
-5. **Brak bazy danych** — dane nie trafiają do RDBMS.
-
----
-
-## Planowane rozszerzenia
-
-```
-main.py
-  ├── fetch_markets(coins: list[str], currency: str) -> list[dict]   # parametryzacja
-  └── save_to_json(data, path)                                        # wydzielenie I/O
-
-etl.py  [planowane]
-  ├── connect_db() -> Connection
-  ├── upsert_coin(conn, record: dict) -> None
-  └── upsert_snapshot(conn, record: dict) -> None
-
-scheduler.py  [planowane]
-  └── run_every(interval_minutes: int) -> None
-```
+1. **Rate limit API** — 10 s opóźnienia między żądaniami; pełne pobieranie historyczne trwa ~50 s.
+2. **Lokalna baza** — SQLite nie obsługuje współbieżnych zapisów z wielu procesów.
+3. **Brak harmonogramowania** — dane pobierane ręcznie (przycisk w UI lub re-run notebooka).
+4. **5 monet hardkodowanych** — lista `COINS` w `app.py` i notebooku.
+5. **Brak autentykacji** — aplikacja Streamlit dostępna lokalnie bez logowania.
 
 ---
 
-*Szczegółowe diagramy sekwencji i klas — zob. [`diagrams.md`](diagrams.md).*
+*Diagramy: [`diagrams.md`](diagrams.md) · Schemat DB: [`data-model.md`](data-model.md)*

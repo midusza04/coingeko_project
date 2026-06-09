@@ -1,191 +1,198 @@
-# API Reference — dokumentacja modułu
+# Referencja API modułów
 
-> Dokumentacja generowana na podstawie docstringów w formacie zgodnym z `pydoc`.  
-> Aby wygenerować plik HTML: `python -m pydoc -w main`
-
----
-
-## Moduł `main`
-
-**Plik:** `main.py`  
-**Wersja projektu:** 0.1.0
-
-### Opis
-
-Moduł ingestion danych rynkowych kryptowalut z CoinGecko API.
-
-Pobiera aktualne notowania Bitcoina, Ethereum i Solany z publicznego REST API
-CoinGecko v3 i zapisuje odpowiedź jako sformatowany plik JSON.  
-Stanowi warstwę kolekcji danych dla projektu akademickiego z przedmiotu
-Bazy Danych — zebrane rekordy JSON są materiałem źródłowym do projektowania
-i zasilania schematu relacyjnej bazy danych.
-
-**Typowe użycie:**
-
-```bash
-python main.py
-```
-
-**Używany endpoint API:**
-
-```
-https://api.coingecko.com/api/v3/coins/markets
-```
-
-**Plik wyjściowy:**
-
-```
-coingecko_response.json  (tworzony / nadpisywany w bieżącym katalogu)
-```
+> Pełna referencja (EN): [`DOCUMENTATION.md` §6](../DOCUMENTATION.md)  
+> Raport akademicki: [`SPRAWOZDANIE.md` §6–7](../SPRAWOZDANIE.md)
 
 ---
 
-### Importy
+## Moduły w projekcie
 
-| Symbol | Źródło | Cel |
-|--------|--------|-----|
-| `json` | stdlib | Serializacja i formatowanie danych JSON |
-| `Path` | `pathlib` (stdlib) | Cross-platformowe operacje na ścieżkach plików |
-| `requests` | PyPI | Wykonywanie żądań HTTP GET |
+| Moduł | Status | Opis |
+|-------|--------|------|
+| **`app.py`** | **główny** | Aplikacja Streamlit — ETL + 6 stron wizualizacji |
+| **`crypto_market_analysis.ipynb`** | **główny** | Notebook — te same funkcje DB/API w 11 etapach |
+| `main.py` | legacy | Prosty fetcher JSON (3 monety, bez bazy) |
+| `generate_sprawozdanie.py` | narzędzie | Generator raportu DOCX |
+
+---
+
+## `app.py` — aplikacja Streamlit
+
+**Plik:** `app.py` (847 linii)  
+**Uruchomienie:** `uv run streamlit run app.py`
+
+### Stałe konfiguracyjne
+
+| Stała | Wartość | Opis |
+|-------|---------|------|
+| `DB_PATH` | `"crypto_market.db"` | Ścieżka do pliku SQLite |
+| `BASE_URL` | `"https://api.coingecko.com/api/v3"` | Bazowy URL CoinGecko API |
+| `REQUEST_DELAY` | `10` | Opóźnienie (s) między żądaniami API |
+| `COINS` | 5-elementowa lista | Śledzone kryptowaluty (`id`, `symbol`, `name`) |
+| `METRIC_MAP` | dict | Mapowanie etykiet → kolumny DataFrame |
+| `PERIOD_MAP` | dict | Mapowanie okresów → liczba dni |
+| `AGG_MAP` | dict | Mapowanie agregacji → funkcja pandas |
+
+### Funkcje bazy danych
+
+#### `create_database() -> None`
+
+Tworzy 3 tabele i indeksy (`CREATE TABLE IF NOT EXISTS`). Wstawia listę monet (`INSERT OR IGNORE`). Wywoływana przy starcie aplikacji w `main()`.
+
+**Efekty uboczne:** tworzy/aktualizuje `crypto_market.db`.
 
 ---
 
-### Funkcje
+#### `load_snapshots() -> pd.DataFrame`
+
+Ładuje pełny JOIN `market_snapshots` + `cryptocurrencies` do DataFrame.
+
+```sql
+SELECT s.snapshot_date, s.price_usd, s.market_cap, s.total_volume,
+       c.name, c.symbol
+FROM market_snapshots s
+JOIN cryptocurrencies c ON s.crypto_id = c.id
+ORDER BY s.snapshot_date
+```
+
+**Cache:** `@st.cache_data(ttl=60)` — 60 sekund.
 
 ---
+
+#### `load_db_stats() -> dict`
+
+Zwraca słownik ze statystykami bazy:
+- `cryptocurrencies`, `market_snapshots`, `market_current` — liczba wierszy
+- `date_from`, `date_to` — zakres dat w `market_snapshots`
+
+**Cache:** `@st.cache_data(ttl=60)`.
+
+---
+
+### Funkcje API / ETL
+
+#### `fetch_market_chart(coin_id: str, days: int = 365) -> dict`
+
+Pobiera dane historyczne z CoinGecko.
+
+```
+GET /coins/{coin_id}/market_chart?vs_currency=usd&days=365&interval=daily
+```
+
+**Zwraca:** `{prices: [[ts_ms, value], …], market_caps: [...], total_volumes: [...]}`  
+**Wyjątki:** `HTTPError`, `Timeout`, `ConnectionError`
+
+---
+
+#### `fetch_markets_current() -> list`
+
+Pobiera bieżące dane rynkowe dla wszystkich śledzonych monet.
+
+```
+GET /coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,binancecoin,ripple&...
+```
+
+**Zwraca:** lista 5 słowników (po jednym na monetę).
+
+---
+
+#### `store_market_chart(coin_id: str, data: dict) -> int`
+
+Parsuje odpowiedź API, konwertuje timestampy na daty i zapisuje do `market_snapshots`.
+
+```python
+INSERT OR REPLACE INTO market_snapshots
+    (crypto_id, snapshot_date, price_usd, market_cap, total_volume)
+VALUES (?, ?, ?, ?, ?)
+```
+
+**Zwraca:** liczba zapisanych wierszy (~366).
+
+---
+
+#### `store_current(data: list) -> None`
+
+Wstawia bieżący snapshot do `market_current` z `collected_at = UTC now`.
+
+```python
+INSERT INTO market_current (crypto_id, collected_at, price_usd, ...)
+VALUES (?, ?, ?, ...)
+```
+
+**Efekt:** 5 nowych wierszy (append-only).
+
+---
+
+### Funkcje pomocnicze
+
+#### `fmt_pct(x: float) -> str`
+
+Formatuje liczbę jako `▲ 3.14%` lub `▼ 1.23%`. Zwraca `"N/A"` dla NaN.
+
+#### `build_dashboard_df(df: pd.DataFrame) -> pd.DataFrame`
+
+Oblicza zmiany procentowe 24h/7d/30d z historycznych snapshotów. Zwraca DataFrame gotowy do dashboardu.
+
+---
+
+### Strony Streamlit
+
+| Funkcja | Strona | Opis |
+|---------|--------|------|
+| `page_overview()` | Overview | KPI bazy, zakres dat, tabela nawigacji |
+| `page_data_collection()` | Data Collection | Przyciski pobierania historycznego i live; podsumowanie DB |
+| `page_time_series()` | Time Series | Wykres liniowy; 6 filtrów sidebar |
+| `page_quantitative()` | Quantitative Analysis | Bar / Box / Violin; 6 filtrów |
+| `page_market_dashboard()` | Market Dashboard | KPI, tabela, grouped bar, heatmap, treemap |
+| `page_correlation()` | Correlation & Volatility | Macierz korelacji, zmienność, korelacja z BTC |
 
 #### `main() -> None`
 
-```
-main()
-```
-
-Pobiera dane rynkowe kryptowalut z CoinGecko i zapisuje je lokalnie.
-
-Wysyła pojedyncze żądanie GET do endpointu `/coins/markets` publicznego API
-CoinGecko v3, żądając statystyk rynkowych wyrażonych w USD dla Bitcoina,
-Ethereum i Solany.  Surowa odpowiedź JSON jest formatowana (indent=4) i
-zapisywana do pliku `coingecko_response.json` w bieżącym katalogu roboczym.
-Nazwy pól pierwszego rekordu są wypisywane na stdout w celach inspekcyjnych.
-
-**Parametry zapytania HTTP:**
-
-| Parametr | Wartość | Opis |
-|----------|---------|------|
-| `vs_currency` | `"usd"` | Wszystkie wartości monetarne w dolarach amerykańskich |
-| `ids` | `"bitcoin,ethereum,solana"` | Monety do pobrania |
-| `order` | `"market_cap_desc"` | Sortowanie malejąco po kapitalizacji |
-| `per_page` | `10` | Maksymalna liczba wyników na stronę |
-| `page` | `1` | Numer strony paginacji |
-| `sparkline` | `"false"` | Pomija dane sparkline (wykres 7-dniowy) |
-| `price_change_percentage` | `"24h,7d"` | Dodatkowe pola zmian procentowych |
-
-**Efekty uboczne:**
-
-- Wykonuje jedno wychodzące żądanie HTTP GET (timeout: 10 sekund).
-- Tworzy / nadpisuje plik `coingecko_response.json` w CWD.
-- Wypisuje na stdout: kod statusu HTTP, ścieżkę pliku wyjściowego,
-  listę dostępnych nazw pól JSON.
-
-**Wyjątki:**
-
-| Wyjątek | Kiedy |
-|---------|-------|
-| `requests.exceptions.HTTPError` | Serwer zwrócił kod 4xx lub 5xx (`raise_for_status()`) |
-| `requests.exceptions.ConnectionError` | Brak połączenia sieciowego lub niedostępność hosta |
-| `requests.exceptions.Timeout` | Serwer nie odpowiedział w ciągu 10 sekund |
-| `OSError` | Błąd zapisu pliku (brak uprawnień, brak miejsca na dysku itp.) |
-
-**Zwraca:** `None`
-
-**Przykład wywołania:**
-
-```python
-from main import main
-
-main()
-# Status code: 200
-# Zapisano dane do pliku: coingecko_response.json
-#
-# Dostępne pola dla pierwszego rekordu:
-# - id
-# - symbol
-# - name
-# ...
-```
+Punkt wejścia Streamlit. Wywołuje `create_database()`, konfiguruje sidebar i routuje do wybranej strony.
 
 ---
 
-### Punkt wejścia
+## `main.py` — legacy fetcher JSON
 
-```python
-if __name__ == "__main__":
-    main()
-```
+> **Status: legacy** — zastąpiony przez `app.py`. Pozostawiony jako referencja początkowego etapu projektu.
 
-Wywołanie `main()` gdy moduł uruchamiany jest bezpośrednio (`python main.py`).
-Nie wykonuje żadnych akcji przy importowaniu modułu.
+**Plik:** `main.py` (102 linie)  
+**Uruchomienie:** `uv run python main.py`
+
+### `main() -> None`
+
+Pobiera 3 monety (BTC, ETH, SOL) z `/coins/markets` i zapisuje odpowiedź do `coingecko_response.json`.
+
+**Parametry HTTP:**
+
+| Parametr | Wartość |
+|----------|---------|
+| `vs_currency` | `"usd"` |
+| `ids` | `"bitcoin,ethereum,solana"` |
+| `price_change_percentage` | `"24h,7d"` |
+
+**Efekty uboczne:**
+- 1 żądanie HTTP GET (timeout 10s)
+- Nadpisuje `coingecko_response.json`
+- Wypisuje kod HTTP i nazwy pól na stdout
+
+**Wyjątki:** `HTTPError`, `ConnectionError`, `Timeout`, `OSError`
 
 ---
 
 ## Generowanie dokumentacji HTML (pydoc)
 
-### Lokalnie w przeglądarce
-
 ```bash
-# Serwer HTTP z dokumentacją na http://localhost:1234
-python -m pydoc -p 1234
+# Dokumentacja legacy modułu main.py
+uv run python -m pydoc -w main
+# → main.html
+
+# Podgląd w przeglądarce
+uv run python -m pydoc -p 1234
 ```
 
-### Zapis do pliku HTML
-
-```bash
-python -m pydoc -w main
-# Tworzy: main.html
-```
-
-### Podgląd w terminalu
-
-```bash
-python -m pydoc main
-```
+Statyczna dokumentacja HTML: [`docs/index.html`](../docs/index.html)
 
 ---
 
-## Konwencje docstringów
-
-Projekt używa formatu **Google Style** (kompatybilny z pydoc, pdoc, Sphinx).
-
-Szablon dla nowych funkcji:
-
-```python
-def fetch_markets(coins: list[str], currency: str = "usd") -> list[dict]:
-    """Pobierz dane rynkowe dla podanych monet.
-
-    Krótki opis w jednej linii.
-
-    Dłuższy opis jeśli potrzebny. Może się rozciągać
-    na kilka linii.
-
-    Args:
-        coins: Lista identyfikatorów CoinGecko, np. ``["bitcoin", "ethereum"]``.
-        currency: Kod waluty bazowej (domyślnie ``"usd"``).
-
-    Returns:
-        Lista słowników z danymi rynkowymi — po jednym na monetę.
-
-    Raises:
-        requests.exceptions.HTTPError: Jeśli API zwróci błąd HTTP.
-        requests.exceptions.Timeout: Jeśli zapytanie przekroczy limit czasu.
-
-    Example:
-        >>> data = fetch_markets(["bitcoin"])
-        >>> data[0]["name"]
-        'Bitcoin'
-    """
-```
-
----
-
-*Architektura systemu — zob. [`architecture.md`](architecture.md).*  
-*Model danych — zob. [`data-model.md`](data-model.md).*
+*Architektura: [`architecture.md`](architecture.md) · Model danych: [`data-model.md`](data-model.md)*
